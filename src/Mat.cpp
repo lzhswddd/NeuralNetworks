@@ -577,6 +577,22 @@ const Matrix nn::mRand(int low, int top, int row, int col, int channel, bool isd
 		m(index) = getRandData(low, top, isdouble);
 	return m;
 }
+const Matrix nn::mcreate(int row, int col)
+{
+	return Matrix(row, col);
+}
+const Matrix nn::mcreate(int row, int col, int channel)
+{
+	return Matrix(row, col, channel);
+}
+const Matrix nn::mcreate(Size size)
+{
+	return Matrix(size);
+}
+const Matrix nn::mcreate(Size3 size)
+{
+	return Matrix(size);
+}
 const Matrix nn::adj(const Matrix &temp)
 {
 	if (temp.empty()) {
@@ -633,10 +649,10 @@ const Matrix nn::pinv(const Matrix &temp, direction direc)
 	}
 	switch (direc)
 	{
-	case LEFT:return (temp.Tran()*temp).Inv()*temp.Tran();
+	case LEFT:return (temp.t()*temp).Inv()*temp.t();
 	case RIGHT: {
-		Matrix m = temp.Tran();
-		return nn::pinv(m, LEFT).Tran();
+		Matrix m = temp.t();
+		return nn::pinv(m, LEFT).t();
 	}
 	default: 
 		cerr << errinfo[ERR_INFO_VALUE] << endl;
@@ -989,6 +1005,11 @@ const Matrix nn::Filter2D(const Mat & input, const Mat & kern, Point anchor, con
 			dst(x, y) = value;
 		}
 	return dst;
+}
+
+const Matrix nn::LeastSquare(const Matrix & x, const Matrix & y)
+{
+	return (x.t()*x).Inv()*x.t()*y;
 }
 
 void nn::pause()

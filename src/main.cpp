@@ -1,11 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <time.h>
-#include <algorithm>
-#include <iomanip>
-#include <io.h>
-#include <direct.h>
-#include <Windows.h>
+
 #include "include.h"
 
 using namespace nn;
@@ -54,15 +50,31 @@ private:
 	Net bbox;
 };
 
+void reverse(const Image& src, Image&dst)
+{
+	dst = 255 - src;
+}
+
+void normalization(const Mat& src, Mat&dst)
+{
+	dst = src / src.findmax();
+}
+
+const Mat label(const Mat &label)
+{
+	return Mat(label.maxAt());
+}
+
 int main()
 {
-	Mat m = zeros(100, 100);
-	Mat a[10000];
-	int i = 0;
-	while (1) {
-		a[i] = m;
-		i = (i + 1) % 10000;
+	TrainData traindata("./train", "data.txt", "images", 100, label);
+	traindata.register_process(reverse, normalization);
+	Mat x, y;
+	for (int &v : traindata.range) {
+		traindata.batch(x, y);
+		cout << x.Sum() << " " << y << endl;
 	}
+
 	/*Srandom();
 	Pnet net;
 	net.initialize(3);

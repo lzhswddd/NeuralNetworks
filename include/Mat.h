@@ -12,10 +12,16 @@ namespace nn {
 	public:
 		explicit Matrix();
 		/**
-		@brief 生成n*n*1的方阵,用0填充
-		@param n 矩阵行数
+		@brief 生成1*1*1的方阵,用value填充
+		@param value
 		*/
-		Matrix(int n);
+		template<class Type>
+		Matrix(Type value)
+		{
+			init();
+			*this = Matrix(1, 1, 1);
+			matrix[0] = (double)value;
+		}
 		/**
 		@brief 生成row*col*1的方阵,用0填充
 		@param row 矩阵行数
@@ -88,6 +94,27 @@ namespace nn {
 		@param col 矩阵列数
 		*/
 		Matrix(double *matrix, int row, int col, int channel = 1);
+		template<class Type>
+		Matrix(const std::vector<Type> &vec, X_Y_Z dirc)
+		{
+			init();
+			Matrix mat;
+			switch (dirc)
+			{
+			case nn::ROW:mat = zeros((int)vec.size(), 1, 1);
+				break;
+			case nn::COL:mat = zeros(1, (int)vec.size(), 1);
+				break;
+			case nn::CHANNEL:mat = zeros(1, 1, (int)vec.size());
+				break;
+			default:
+				return;
+			}
+			int idx = 0;
+			for (const Type&v : vec)
+				mat(idx++) = (double)v;
+			*this = mat;
+		}
 		~Matrix();
 		/**
 		@brief 返回矩阵指针
@@ -327,7 +354,7 @@ namespace nn {
 		/**
 		@brief 返回转置矩阵
 		*/
-		const Matrix Tran()const;
+		const Matrix t()const;
 		/**
 		@brief 返回逆矩阵
 		*/
@@ -736,6 +763,29 @@ namespace nn {
 	*/
 	const Matrix mRand(int low, int top, int row, int col, int channel = 1,bool isdouble = false);
 	/**
+	@brief 返回大小为row*col*1矩阵
+	@param row 矩阵行数
+	@param col 矩阵列数
+	*/
+	const Matrix mcreate(int row, int col);	
+	/**
+	@brief 返回大小为row*col*channel矩阵
+	@param row 矩阵行数
+	@param col 矩阵列数
+	@param channel 矩阵通道数
+	*/
+	const Matrix mcreate(int row, int col, int channel);
+	/**
+	@brief 返回大小为size矩阵
+	@param size 矩阵大小
+	*/
+	const Matrix mcreate(Size size);
+	/**
+	@brief 返回大小为size矩阵
+	@param size 矩阵大小
+	*/
+	const Matrix mcreate(Size3 size);
+	/**
 	@brief 返回元素为0的row*col*1矩阵
 	@param row 矩阵行数
 	@param col 矩阵列数
@@ -986,6 +1036,12 @@ namespace nn {
 	@param is_copy_border 是否要扩展边界
 	*/
 	const Matrix Filter2D(const Mat & input, const Mat & kern, Point anchor = Point(-1, -1), const Size & strides = Size(1, 1), bool is_copy_border = true);
+	/**
+	最小二乘法
+	@param x 自变量
+	@param y 因变量
+	*/
+	const Matrix LeastSquare(const Matrix& x, const Matrix &y);
 	/**
 	@brief 命令行按矩阵输出
 	@param row 行

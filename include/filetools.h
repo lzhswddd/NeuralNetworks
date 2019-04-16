@@ -9,23 +9,27 @@
 using std::vector;
 using std::string;
 
-string createpath(string path, string dir)
+#ifndef MAX_PATH
+#define MAX_PATH 256
+#endif
+
+static string createpath(string path, string dir)
 {
 	path = path + "\\" + dir + "\\";
 	return path;
 }
 
-string createfile(string filename)
+static string createfile(string filename)
 {
 	return filename.substr(filename.rfind('\\') + 1);
 }
 
-string createtype(string filename)
+static string createtype(string filename)
 {
 	return filename.substr(filename.rfind('.') + 1);
 }
 //运行路径
-string show_path()
+static string show_path()
 {
 	char buffer[MAX_PATH];
 	_getcwd(buffer, MAX_PATH);
@@ -39,7 +43,7 @@ string show_path()
 @param files 保存path下的所有文件路径
 */
 
-void getFiles(string path, vector<string>& files)
+static void getFiles(string path, vector<string>& files)
 {
 	//文件句柄  
 	intptr_t hFile = 0;
@@ -64,6 +68,31 @@ void getFiles(string path, vector<string>& files)
 		} while (_findnext(hFile, &fileinfo) == 0);
 		_findclose(hFile);
 	}
+}
+
+static vector<string> strsplit(string &str, char ch)
+{
+	size_t idx = 0;
+	size_t offset = 0;
+	vector<string> spl;
+	while (true) {
+		offset = str.find(ch, idx);
+		if (offset == string::npos)break;
+		spl.push_back(str.substr(idx, offset - idx));
+		idx = offset + 1;
+	}
+	str = str.substr(idx);
+	if (str != "")
+		spl.push_back(str);
+	return spl;
+}
+
+static vector<double> str2double(vector<string> &str)
+{
+	vector<double> v;
+	for (string &s : str) 
+		v.push_back(stod(s));
+	return v;
 }
 
 #endif //__FILETOOLS_H__

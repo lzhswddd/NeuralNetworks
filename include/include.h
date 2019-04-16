@@ -7,6 +7,7 @@
 #include "filetools.h"
 #include "Net.h"
 #include "method.h"
+#include "TrainData.h"
 #include <string>
 #include <vector>
 using std::vector;

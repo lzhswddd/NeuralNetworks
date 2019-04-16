@@ -10,11 +10,6 @@ Matrix::Matrix()
 	init();
 	checkSquare();
 }
-Matrix::Matrix(int n)
-{
-	init();
-	*this = Matrix(n, n, 1);
-}
 Matrix::Matrix(int row, int col)
 {
 	init();
@@ -352,7 +347,7 @@ void Matrix::setTran()
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw errinfo[0];
 	}
-	*this = Tran();
+	*this = t();
 }
 void Matrix::setInv()
 {
@@ -635,7 +630,7 @@ const Matrix Matrix::Adj()const
 		throw errinfo[0];
 	}
 }
-const Matrix Matrix::Tran()const
+const Matrix Matrix::t()const
 {
 	if (matrix == nullptr) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
