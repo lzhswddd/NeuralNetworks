@@ -18,7 +18,16 @@ namespace nn
 		EqualIntervalSampling = 0,
 		LocalMean
 	};
-
+	/**
+	EqualIntervalSampling 等间隔采样
+	LocalMean 局部均值
+	*/
+	enum RotateAngle
+	{
+		ROTATE_90_ANGLE = 0,
+		ROTATE_180_ANGLE,
+		ROTATE_270_ANGLE
+	};
 	class Color
 	{
 	public:
@@ -27,17 +36,6 @@ namespace nn
 		uchar r;
 		uchar g;
 		uchar b;
-	};
-
-	class Rect 
-	{
-	public:
-		Rect() : x(0), y(0), width(0), height(0) {}
-		Rect(int x, int y, int width, int height) : x(x), y(y), width(width), height(height) {}
-		int x;
-		int y;
-		int width;
-		int height;
 	};
 
 	//图像转矩阵
@@ -53,9 +51,9 @@ namespace nn
 	//读取图像
 	const Mat mImread(const char *image_path, bool is_gray = false);
 	//保存图像
-	void Imwrite(std::string image_path, Image& image);
+	void Imwrite(std::string image_path, const Image& image);
 	//保存图像
-	void Imwrite(const char *image_path, const Mat & image);
+	void Imwrite(const char *image_path, const Image& image);
 	//RGB转灰度
 	void RGB2Gray(const Image& src, Image& dst);
 	//按比例缩放
@@ -63,6 +61,8 @@ namespace nn
 	//缩放
 	void resize(const Image& src, Image& dst, Size newSize, ReductionMothed mothed);
 	
+	void rotate(const Image& src, Image &dst, RotateAngle dice);
+
 	void SetPixel(Image & src, Point point, int x, int y, Color color);
 	void circle(Image &src, Point p, int radius, Color color, int lineWidth = 1, bool fill = false);
 	void circle(Image &src, int x, int y, int radius, Color color, int lineWidth = 1, bool fill = false);
@@ -71,5 +71,9 @@ namespace nn
 	void rectangle(Image &src, Rect rect, Color color, int lineWidth = 1, bool fill = false);
 	void drawContours(Image &src, const std::vector<Point> &contours, int radius, Color color, int lineWidth = 1, bool fill = false);
 	void drawContours(Image &src, const std::vector<std::vector<Point>> &contours, int index, int radius, Color color, int lineWidth = 1, bool fill = false);
+
+	void projection(const Image& src, Mat &vertical, Mat &horizontal);
+	void verticalProjection(const Image& src, Mat &vertical);
+	void horizontalProjection(const Image & src, Mat &horizontal);
 }
 #endif // !__IMGPROCESS_H__

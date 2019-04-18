@@ -1,4 +1,5 @@
 #include "imgprocess.h"
+#include "alignMalloc.h"
 
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
@@ -23,11 +24,7 @@ const Mat nn::Image2Mat(const Image & src)
 const Image nn::Mat2Image(const Mat & src)
 {
 	if (src.empty())return Image();
-	Image image;
-	image.rows = src.rows();
-	image.cols = src.cols();
-	image.channels = src.channels();
-	image.data = new uchar[image.rows*image.cols*image.channels];
+	Image image(src.rows(), src.cols(), src.channels());
 	for (int i = 0; i < src.rows(); ++i)
 		for (int j = 0; j < src.cols(); ++j)
 			for (int z = 0; z < src.channels(); ++z)
@@ -37,26 +34,20 @@ const Image nn::Mat2Image(const Mat & src)
 
 const Image nn::Imread(std::string image_path, bool is_gray)
 {
-	Image image;
-	image.data = stbi_load(image_path.c_str(), &image.cols, &image.rows, &image.channels, 0);
-	if (image.data == nullptr) {
-		fprintf(stderr, "load %s fail.\n", image_path.c_str());
-		throw "load image fail";
-	}
-	if (is_gray) {
-		RGB2Gray(image, image);
-	}
-	return image;
+	return Imread(image_path.c_str(), is_gray);
 }
 
 const Image nn::Imread(const char * image_path, bool is_gray)
 {
-	Image image;
-	image.data = stbi_load(image_path, &image.cols, &image.rows, &image.channels, 0);
-	if (image.data == nullptr) {
-		fprintf(stderr, "load %s fail.\n", image_path);
-		throw "load image fail";
+	int cols, rows, channels;
+	uchar* ptr = stbi_load(image_path, &cols, &rows, &channels, 0);
+	if (ptr == nullptr) {
+		return Image();
+		//fprintf(stderr, "load %s fail.\n", image_path);
+		//throw "load image fail";
 	}
+	Image image(ptr, rows, cols, channels, cols, true);
+	delete[]ptr;
 	if (is_gray) {
 		RGB2Gray(image, image);
 	}
@@ -73,18 +64,14 @@ const Mat nn::mImread(const char * image_path, bool is_gray)
 	return Image2Mat(Imread(image_path, is_gray));
 }
 
-void nn::Imwrite(std::string image_path, Image & image)
+void nn::Imwrite(std::string image_path, const Image & image)
 {
-	if (!tje_encode_to_file(image_path.c_str(), image.cols, image.rows, image.channels, true, image.data)) {
-		fprintf(stderr, "save %s fail.\n", image_path.c_str());
-		throw "save image fail";
-	}
+	Imwrite(image_path.c_str(), image);
 }
 
-void nn::Imwrite(const char * image_path, const Mat & image)
+void nn::Imwrite(const char * image_path, const Image & image)
 {
-	Image img = Mat2Image(image);
-	if (!tje_encode_to_file(image_path, img.cols, img.rows, img.channels, true, img.data)) {
+	if (!tje_encode_to_file(image_path, image.cols, image.rows, image.channels, true, image.data)) {
 		fprintf(stderr, "save %s fail.\n", image_path);
 		throw "save image fail";
 	}
@@ -94,14 +81,14 @@ void nn::RGB2Gray(const Image & src, Image & dst)
 {
 	if (src.empty())return;
 	if (src.channels != 1) {
-		Image img = Mat2Image(zeros(src.rows, src.cols));
+		Image img(src.rows, src.cols);
 		for (int i = 0; i < src.rows; ++i) {
 			for (int j = 0; j < src.cols; ++j) {
 				Vec<uchar> rgb = src(i, j);
 				img(i, j, 0) = (uchar)(((int)rgb[0] * 30 + (int)rgb[1] * 59 + (int)rgb[2] * 11 + 50) / 100);
 			}
 		}
-		img.copyTo(dst);
+		dst = img;
 	}
 	else {
 		src.copyTo(dst);
@@ -158,12 +145,48 @@ void nn::resize(const Image & src, Image & dst, double xRatio, double yRatio, Re
 	default:
 		break;
 	}
-	img.copyTo(dst);
+	 dst = img;
 }
 
 void nn::resize(const Image & src, Image & dst, Size newSize, ReductionMothed mothed)
 {
 	resize(src, dst, newSize.wid / double(src.cols), newSize.hei / double(src.rows), mothed);
+}
+
+void nn::rotate(const Image & src, Image & dst, RotateAngle dice)
+{
+	switch (dice)
+	{
+	case nn::ROTATE_90_ANGLE:
+	{
+		Image img(src.cols, src.rows, src.channels);
+		for (int row = 0; row < src.rows; ++row)
+			for (int col = 0; col < src.cols; ++col)
+				img(col, src.rows - 1 - row) = src(row, col);
+		dst = img;
+	}
+		break;
+	case nn::ROTATE_180_ANGLE:
+	{
+		Image img(src.rows, src.cols, src.channels);
+		for (int row = 0, y = src.rows - 1; row < src.rows && y >=0; ++row, --y)
+			for (int col = 0, x = src.cols - 1; col < src.cols && x >= 0; ++col, --x)
+				img(row, col) = src(y, x);
+		dst = img;
+	}
+		break;
+	case nn::ROTATE_270_ANGLE:
+	{
+		Image img(src.cols, src.rows, src.channels);
+		for (int row = 0; row < src.rows; ++row)
+			for (int col = 0; col < src.cols; ++col)
+				img(src.cols - 1 - col, row) = src(row, col);
+		dst = img;
+	}
+		break;
+	default:
+		break;
+	}
 }
 
 void nn::circle(Image & src, Point p, int radius, Color color, int lineWidth, bool fill)
@@ -267,6 +290,51 @@ void nn::drawContours(Image & src, const std::vector<std::vector<Point>>& contou
 	else {
 		for (const Point &p : contours[index])
 			circle(src, p, radius, color, lineWidth, fill);
+	}
+}
+
+void nn::projection(const Image& src, Mat &vertical, Mat &horizontal)
+{
+	if (src.empty())return;
+	horizontal = zeros(1, src.cols, src.channels);
+	vertical = zeros(src.rows, 1, src.channels);
+	FOR_IMAGE(i, src, 1) {
+		FOR_IMAGE(j, src, 2) {
+			FOR_IMAGE(k, src, 3) {
+				horizontal(0, j, k) += src(i, j, k);
+				vertical(i, 0, k) += src(i, j, k);
+			}
+		}
+	}
+}
+
+void nn::verticalProjection(const Image & src, Mat &vertical)
+{
+	if (src.empty())return;
+	vertical = zeros(src.rows, 1, src.channels);
+	FOR_IMAGE(i, src, 1) {
+		FOR_IMAGE(k, src, 3) {
+			int sum = 0;
+			FOR_IMAGE(j, src, 2) {
+				sum += src(i, j, k);
+			}
+			vertical(i, 0, k) = sum;
+		}
+	}
+}
+
+void nn::horizontalProjection(const Image & src, Mat &horizontal)
+{
+	if (src.empty())return;
+	horizontal = zeros(1, src.cols, src.channels);
+	FOR_IMAGE(i, src, 2) {
+		FOR_IMAGE(k, src, 3) {
+			int sum = 0;
+			FOR_IMAGE(j, src, 1) {
+				sum += src(j, i, k);
+			}
+			horizontal(0, i, k) = sum;
+		}
 	}
 }
 

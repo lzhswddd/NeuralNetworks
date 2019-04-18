@@ -113,6 +113,16 @@ namespace nn
 		LEFT = 0,
 		RIGHT
 	};
+	class Rect
+	{
+	public:
+		Rect() : x(0), y(0), width(0), height(0) {}
+		Rect(int x, int y, int width, int height) : x(x), y(y), width(width), height(height) {}
+		int x;
+		int y;
+		int width;
+		int height;
+	};
 	class Size
 	{
 	public:

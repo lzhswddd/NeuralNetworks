@@ -1,5 +1,7 @@
 #include <iostream>
 #include <iomanip>
+#include "alignMalloc.h"
+#include "Matrix.h"
 #include "Mat.h"
 using namespace std;
 using namespace nn;
@@ -17,9 +19,9 @@ Matrix::Matrix(int row, int col)
 	depth = 1;
 	this->row = row;
 	this->col = col;
-	matrix = new double[row*col*depth];
+	matrix = (double*)fastMalloc(row*col*depth*sizeof(double));
 	if (matrix != nullptr)
-		memset(matrix, 0, length() * sizeof(double));
+		memset(matrix, 0, length() * sizeof(matrix[0]));
 	checkSquare();
 }
 Matrix::Matrix(int row, int col, int depth)
@@ -29,9 +31,9 @@ Matrix::Matrix(int row, int col, int depth)
 	this->row = row;
 	this->col = col;
 	this->depth = depth;
-	matrix = new double[row*col*depth];
+	matrix = (double*)fastMalloc(row*col*depth*sizeof(double));
 	if (matrix != nullptr)
-		memset(matrix, 0, length() * sizeof(double));
+		memset(matrix, 0, length() * sizeof(matrix[0]));
 	checkSquare();
 }
 Matrix::Matrix(Size size_)
@@ -41,9 +43,9 @@ Matrix::Matrix(Size size_)
 	row = size_.hei;
 	col = size_.wid;
 	depth = 1;
-	matrix = new double[row*col*depth];
+	matrix = (double*)fastMalloc(row*col*depth*sizeof(double));
 	if (matrix != nullptr)
-		memset(matrix, 0, length() * sizeof(double));
+		memset(matrix, 0, length() * sizeof(matrix[0]));
 	checkSquare();
 }
 Matrix::Matrix(Size3 size_)
@@ -53,9 +55,9 @@ Matrix::Matrix(Size3 size_)
 	row = size_.x;
 	col = size_.y;
 	depth = size_.z;
-	matrix = new double[row*col*depth];
+	matrix = (double*)fastMalloc(row*col*depth*sizeof(double));
 	if (matrix != nullptr)
-		memset(matrix, 0, length() * sizeof(double));
+		memset(matrix, 0, length() * sizeof(matrix[0]));
 	checkSquare();
 }
 Matrix::Matrix(double *matrix, int n)
@@ -77,7 +79,7 @@ Matrix::Matrix(int *matrix, int row, int col, int channel)
 		this->row = row;
 		this->col = col;
 		this->depth = channel;
-		this->matrix = new double[row*col*depth];
+		this->matrix = (double*)fastMalloc(row*col*depth*sizeof(double));
 		if (this->matrix != nullptr)
 			for (int index = 0; index < length(); index++)
 				this->matrix[index] = (double)matrix[index];
@@ -94,7 +96,7 @@ Matrix::Matrix(double *matrix, int row, int col, int channel)
 		this->row = row;
 		this->col = col;
 		this->depth = channel;
-		this->matrix = new double[row*col*depth];
+		this->matrix = (double*)fastMalloc(row*col*depth*sizeof(double));
 		if (this->matrix != nullptr)
 			memcpy(this->matrix, matrix, row*col*depth * sizeof(double));
 
@@ -122,7 +124,7 @@ Matrix::Matrix(Matrix a, Matrix b, X_Y_Z merge)
 			row = a.row + b.row;
 			col = a.col;
 			depth = a.depth;
-			matrix = new double[row*col*depth];
+			matrix = (double*)fastMalloc(row*col*depth*sizeof(double));
 			if (matrix != nullptr) {
 				memcpy(matrix, a.matrix,
 					a.row*a.col*a.depth * sizeof(double));
@@ -139,7 +141,7 @@ Matrix::Matrix(Matrix a, Matrix b, X_Y_Z merge)
 			row = a.row;
 			col = a.col + b.col;
 			depth = a.depth;
-			matrix = new double[row*col*depth];
+			matrix = (double*)fastMalloc(row*col*depth*sizeof(double));
 			double *temp = a.matrix;
 			if (matrix != nullptr)
 				for (int i = 0; i < row; i++) {
@@ -165,7 +167,7 @@ Matrix::Matrix(MatCommaInitializer_ & m)
 Matrix::~Matrix()
 {
 	if (matrix != nullptr) {
-		delete[]matrix;
+		fastFree(matrix);
 		matrix = nullptr;
 	}
 }
@@ -315,10 +317,10 @@ void Matrix::setvalue(const Matrix &src)
 	square = src.square;
 	if (src.matrix != nullptr) {
 		if (matrix != nullptr) {
-			delete[]matrix;
+			fastFree(matrix);
 			matrix = nullptr;
 		}
-		matrix = new double[row*col*depth];
+		matrix = (double*)fastMalloc(row*col*depth*sizeof(double));
 		if (matrix != nullptr)
 			memcpy(matrix, src.matrix, row*col*depth * sizeof(double));
 	}

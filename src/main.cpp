@@ -65,7 +65,7 @@ const Mat label(const Mat &label)
 	return Mat(label.maxAt());
 }
 
-int main()
+void testTrain()
 {
 	TrainData traindata("./train", "data.txt", "images", 100, label);
 	traindata.register_process(reverse, normalization);
@@ -74,7 +74,57 @@ int main()
 		traindata.batch(x, y);
 		cout << x.Sum() << " " << y << endl;
 	}
+	traindata.reset();
+	for (int &v : traindata.range) {
+		traindata.batch(x, y);
+		cout << x.Sum() << " " << y << endl;
+	}
+}
 
+int main()
+{
+	Image img("F:\\task\\FittingCircle\\images\\5.png");
+	if (img.empty())return -1;
+	Image image;
+	RGB2Gray(img, image);
+	image = 255 - image;
+	Image a;
+	rotate(img, a, ROTATE_90_ANGLE);
+	Imwrite("C:\\Users\\lzh\\Desktop\\1.bmp", a);
+	Mat v, h;
+	projection(image, v, h);
+	Rect rect;
+	bool black = false;
+	for (int i = 0; i < v.length(); ++i) {
+		if (!black && v(i) != 0) {
+			black = true;
+			rect.y = i;
+		}
+		else if(black && v(i) == 0) {
+			rect.height = i - rect.y;
+			break;
+		}
+	} 
+	if (black)
+		rect.height = image.rows;
+	black = false;
+	for (int i = 0; i < h.length(); ++i) {
+		if (!black && h(i) != 0) {
+			black = true;
+			rect.x = i;
+		}
+		else if (black && h(i) == 0) {
+			rect.width = i - rect.x;
+			break;
+		}
+	}
+	rect.x += 5;
+	rect.y += 1;
+	rect.width -= 5;
+	rect.height -= 5;
+	Image roi = img(rect).clone();
+	//rectangle(roi, Rect(50, 50, 500, 500), Color(0), 10, true);
+	Imwrite("C:\\Users\\lzh\\Desktop\\2.bmp", roi);
 	/*Srandom();
 	Pnet net;
 	net.initialize(3);
