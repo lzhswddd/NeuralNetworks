@@ -57,7 +57,7 @@ namespace nn
 	//RGB转灰度
 	void RGB2Gray(const Image& src, Image& dst);
 	//按比例缩放
-	void resize(const Image & src, Image & dst, double xRatio, double yRatio, ReductionMothed mothed);
+	void resize(const Image & src, Image & dst, float xRatio, float yRatio, ReductionMothed mothed);
 	//缩放
 	void resize(const Image& src, Image& dst, Size newSize, ReductionMothed mothed);
 	

@@ -1,60 +1,13 @@
 #ifndef __VARIABLE_H__
 #define __VARIABLE_H__
 #include <stdio.h>
+#include <iostream>
 
 namespace nn
 {
-	static const double pi = 3.1415926535897932384626433832795f;
+	static const float pi = 3.1415926535897932384626433832795f;
 	typedef unsigned char uchar;
-	typedef unsigned int uint;	
-	enum ActivationType {
-		ACTI_SIGMOID,
-		ACTI_TANH,
-		ACTI_RELU,
-		ACTI_ELU,
-		ACTI_LReLU,
-		ACTI_SELU,
-		ACTI_SOFTMAX
-	};
-	/**
-	CONV2D			卷积层
-	MAX_POOL		最大值池化层
-	AVERAGE_POOL	平均值池化层
-	FULL_CONNECTION 全连接层
-	ACTIVATION		激活层
-	RESHAPE			重置维度层
-	DROPOUT			随机使能层
-	*/
-	enum LayerType {
-		CONV2D = 0,
-		MAX_POOL,
-		AVERAGE_POOL,
-		FULL_CONNECTION,
-		ACTIVATION,
-		RESHAPE,
-		DROPOUT
-	};
-	/**
-	None				不提供优化功能
-	GradientDescent		提供梯度下降法
-	Momentum			提供动量梯度下降法
-	NesterovMomentum	提供预测动量梯度下降法
-	Adagrad				提供自适应学习率梯度下降法
-	RMSProp				提供改良自适应学习率梯度下降法
-	Adam				提供自适应学习率动量梯度下降法
-	NesterovAdam		提供自适应学习率预测动量梯度下降法
-	*/
-	enum OptimizerMethod
-	{
-		None = 0,		//!< 不提供优化功能
-		GradientDescent,//!< 提供梯度下降法
-		Momentum,		//!< 提供动量梯度下降法
-		NesterovMomentum,//!< 提供预测动量梯度下降法
-		Adagrad,		//!< 提供自适应学习率梯度下降法
-		RMSProp,		//!< 提供改良自适应学习率梯度下降法
-		Adam,			//!< 提供自适应学习率动量梯度下降法
-		NesterovAdam	//!< 提供自适应学习率预测动量梯度下降法
-	};
+	typedef unsigned int uint;		
 	enum BorderTypes {
 		BORDER_CONSTANT = 0, //!< `iiiiii|abcdefgh|iiiiiii`  with some specified `i`
 		BORDER_REPLICATE = 1, //!< `aaaaaa|abcdefgh|hhhhhhh`
@@ -122,6 +75,11 @@ namespace nn
 		int y;
 		int width;
 		int height;
+		friend std::ostream & operator << (std::ostream &out, const Rect &t)
+		{
+			out << "Rect(" << t.x << "," << t.y << ","<< t.width << "," << t.height << ")";
+			return out;
+		}
 	};
 	class Size
 	{
@@ -131,6 +89,11 @@ namespace nn
 		~Size() {}
 		int hei;
 		int wid;
+		friend std::ostream & operator << (std::ostream &out, const Size &t)
+		{
+			out << "Size(" << t.hei << "," << t.wid << ")";
+			return out;
+		}
 	};
 	class Size3
 	{
@@ -140,6 +103,11 @@ namespace nn
 		int x;
 		int y;
 		int z;
+		friend std::ostream & operator << (std::ostream &out, const Size3 &t)
+		{
+			out << "Size(" << t.x << "," << t.y << "," << t.z << ")";
+			return out;
+		}
 	};
 	template<class Tp_>
 	class Point2
@@ -157,7 +125,12 @@ namespace nn
 			return !((*this) == P);
 		}
 		Tp_ x;
-		Tp_ y;		
+		Tp_ y;	
+		friend std::ostream & operator << (std::ostream &out, const Point2<Tp_> &t)
+		{
+			out << "Point(" << t.x << "," << t.y << ")";
+			return out;
+		}
 	};
 	template<typename Tp_, typename T2>
 	const Point2<Tp_> operator + (const Point2<Tp_> &P, const T2& v)
@@ -194,7 +167,7 @@ namespace nn
 	typedef Point2<int> Point2i;
 	typedef Point2<uint> Point2Ui;
 	typedef Point2<float> Point2f;
-	typedef Point2<double> Point2d;
+	typedef Point2<float> Point2d;
 	typedef Point2i Point;
 
 	template<class Tp_>
@@ -214,7 +187,12 @@ namespace nn
 		}
 		Tp_ x;
 		Tp_ y;
-		Tp_ z;
+		Tp_ z; 
+		friend std::ostream & operator << (std::ostream &out, const Point3<Tp_> &t)
+		{
+			out << "Point(" << t.x << "," << t.y << "," << t.z << ")";
+			return out;
+		}
 	};
 	template<typename Tp_, typename T2>
 	const Point3<Tp_> operator + (const Point3<Tp_> &P, const T2& v)
@@ -251,7 +229,7 @@ namespace nn
 	typedef Point3<int> Point3i;
 	typedef Point3<uint> Point3Ui;
 	typedef Point3<float> Point3f;
-	typedef Point3<double> Point3d;
+	typedef Point3<float> Point3d;
 	class Color;
 	template<class Type>
 	class Vec

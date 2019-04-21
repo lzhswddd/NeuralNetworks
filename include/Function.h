@@ -5,17 +5,19 @@
 #include <string>
 using std::string;
 namespace nn {
+
 	//LeakyReLU的超参
-	const double LReLU_alpha = 0.2;
+	const float LReLU_alpha = 0.2f;
 	//ELU的超参
-	const double ELU_alpha = 1.6732632423543772848170429916717;
+	const float ELU_alpha = 1.6732632423543772848170429916717f;
 	//SELU的超参
-	const double SELU_scale = 1.0507009873554804934193349852946;
+	const float SELU_scale = 1.0507009873554804934193349852946f;
 
 	typedef const Mat(*ActivationFunc)(const Mat &x);
 	typedef const Mat(*func)(const Mat & a, const Mat & x);
 	typedef const Mat(*d_func)(const Mat & a, const Mat & x, const Mat & dy);
 	typedef const Mat(*LossFunc)(const Mat & y, const Mat & y0);
+
 	/**
 	@brief softmax函数
 	Si = exp(y - max(y)) / sum(exp(y - max(y)))
@@ -40,7 +42,12 @@ namespace nn {
 	@brief crossentropy函数
 	E = -(y * log(y0))
 	*/
-	const Mat CrossEntropy(const Mat & y, const Mat & y0);
+	const Mat CrossEntropy(const Mat & y, const Mat & y0);	
+	/**
+	@brief softmax + crossentropy函数
+	E = -(y * log(softmax(y0)))
+	*/
+	const Mat SoftmaxCrossEntropy(const Mat & y, const Mat & y0);
 	/**
 	@brief sigmoid函数
 	y = 1/(1 + exp(-x))
@@ -78,15 +85,30 @@ namespace nn {
 	*/
 	const Mat D_Softmax(const Mat & y);
 	/**
+	@brief L1导数
+	y = 1,
+	*/
+	const Mat D_L1(const Mat & y, const Mat & y0);
+	/**
+	@brief L2导数
+	y = 2 * (y0 - y),
+	*/
+	const Mat D_L2(const Mat & y, const Mat & y0);
+	/**
 	@brief quadratic导数
-	y = y - y0,
+	y = y0 - y
 	*/
 	const Mat D_Quadratic(const Mat & y, const Mat & y0);
 	/**
 	@brief crossentropy导数
-	y = y - y0,
+	y = y0 - y
 	*/
 	const Mat D_CrossEntropy(const Mat & y, const Mat & y0);
+	/**
+	@brief softmax + crossentropy导函数
+	y = y0 - y
+	*/
+	const Mat D_SoftmaxCrossEntropy(const Mat & y, const Mat & y0);
 	/**
 	@brief sigmoid导数
 	y = sigmoid(x) * (1 - sigmoid(x)),

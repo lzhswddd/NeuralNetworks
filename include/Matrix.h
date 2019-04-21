@@ -4,23 +4,17 @@
 #include <vector>
 #include "Vriable.h"
 
+//#define DEEPCOPY_MAT
+#ifndef DEEPCOPY_MAT
+#define LIGHT_MAT
+#endif // !DEEPCOPY_MAT
+
 namespace nn {
 	class MatCommaInitializer_;
 	class Matrix
 	{
 	public:
 		explicit Matrix();
-		/**
-		@brief 生成1*1*1的方阵,用value填充
-		@param value
-		*/
-		template<class Type>
-		Matrix(Type value)
-		{
-			init();
-			*this = Matrix(1, 1, 1);
-			matrix[0] = (double)value;
-		}
 		/**
 		@brief 生成row*col*1的方阵,用0填充
 		@param row 矩阵行数
@@ -78,7 +72,7 @@ namespace nn {
 		@param matrix 矩阵元素
 		@param n 矩阵大小
 		*/
-		Matrix(double *matrix, int n);
+		Matrix(float *matrix, int n);
 		/**
 		@brief 生成row*col*1的方阵,元素为matrix
 		@param matrix 矩阵元素
@@ -92,7 +86,7 @@ namespace nn {
 		@param row 矩阵行数
 		@param col 矩阵列数
 		*/
-		Matrix(double *matrix, int row, int col, int channel = 1);
+		Matrix(float *matrix, int row, int col, int channel = 1);
 		template<class Type>
 		Matrix(const std::vector<Type> &vec, X_Y_Z dirc)
 		{
@@ -111,14 +105,14 @@ namespace nn {
 			}
 			int idx = 0;
 			for (const Type&v : vec)
-				mat(idx++) = (double)v;
+				mat(idx++) = (float)v;
 			*this = mat;
 		}
 		~Matrix();
 		/**
 		@brief 返回矩阵指针
 		*/
-		double* mat_()const;
+		float* mat_()const;
 		/**
 		@brief 检查维度
 		*/
@@ -167,16 +161,20 @@ namespace nn {
 		*/
 		bool Square()const;
 		/**
+		@brief 释放内存
+		*/
+		void release();
+		/**
 		@brief 按索引返回矩阵元素
 		@param index 索引
 		*/
-		double& at(int index)const;
+		float& at(int index)const;
 		/**
 		@brief 按索引返回矩阵元素
 		@param index_x 行索引
 		@param index_y 列索引
 		*/
-		double& at(int index_y, int index_x)const;
+		float& at(int index_y, int index_x)const;
 		/**
 		@brief 将索引转换为对应矩阵列索引
 		@param index 索引
@@ -191,12 +189,12 @@ namespace nn {
 		/**
 		@brief 矩阵第一个元素
 		*/
-		double frist()const;
+		float frist()const;
 		/**
 		@brief 返回矩阵与value相等的第一个元素索引
 		@param value 元素
 		*/
-		int find(double value)const;
+		int find(float value)const;
 		/**
 		@brief 返回矩阵元素最大值的索引
 		*/
@@ -209,20 +207,20 @@ namespace nn {
 		@brief 返回矩阵是否包含value
 		@param value 元素
 		*/
-		bool contains(double value)const;
+		bool contains(float value)const;
 		/**
 		@brief 返回矩阵与value相等的第一个元素
 		@param value 元素
 		*/
-		double& findAt(double value)const;
+		float& findAt(float value)const;
 		/**
 		@brief 返回矩阵元素最大值
 		*/
-		double& findmax()const;
+		float& findmax()const;
 		/**
 		@brief 返回矩阵元素最小值
 		*/
-		double& findmin()const;
+		float& findmin()const;
 		/**
 		@brief 将矩阵按索引区域拷贝元素到src矩阵中
 		@param src 被拷贝矩阵
@@ -275,21 +273,21 @@ namespace nn {
 		@param number 元素
 		@param index 索引
 		*/
-		void setNum(double number, int index);
+		void setNum(float number, int index);
 		/**
 		@brief 修改矩阵对应索引元素
 		@param number 元素
 		@param index_y 行索引
 		@param index_x 列索引
 		*/
-		void setNum(double number, int index_y, int index_x);
+		void setNum(float number, int index_y, int index_x);
 		/**
 		@brief 重置矩阵
 		@param mat 矩阵元素
 		@param row 矩阵行数
 		@param col 矩阵列数
 		*/
-		void setMat(double *mat, int row, int col);
+		void setMat(float *mat, int row, int col);
 		/**
 		@brief 设置逆矩阵
 		*/
@@ -322,6 +320,10 @@ namespace nn {
 		void show()const;
 
 		/**
+		@brief 返回深拷贝矩阵
+		*/
+		const Matrix clone()const;
+		/**
 		@brief 返回取反矩阵
 		*/
 		const Matrix Opp()const;
@@ -329,6 +331,11 @@ namespace nn {
 		@brief 返回绝对值矩阵
 		*/
 		const Matrix Abs()const;
+		/**
+		@brief 返回按num次幂矩阵
+		@param num 次幂
+		*/
+		const Matrix mPow(int num)const;
 		/**
 		@brief 返回按num次幂矩阵
 		@param num 次幂
@@ -363,39 +370,73 @@ namespace nn {
 		矩阵必须是向量
 		*/
 		const Matrix Reverse()const;
-		const Matrix EigenvectorsMax(double offset = 1e-8)const;
-
+		const Matrix EigenvectorsMax(float offset = 1e-8)const;
+		/**
+		@brief sigmoid函数
+		详细情况见Function.h
+		*/
+		const Matrix sigmoid()const;
+		/**
+		@brief tanh函数
+		详细情况见Function.h
+		*/
+		const Matrix tanh()const;
+		/**
+		@brief relu函数
+		详细情况见Function.h
+		*/
+		const Matrix relu()const;
+		/**
+		@brief elu函数
+		详细情况见Function.h
+		*/
+		const Matrix elu()const;
+		/**
+		@brief selu函数
+		详细情况见Function.h
+		*/
+		const Matrix selu()const;
+		/**
+		@brief leaky_relu函数
+		详细情况见Function.h
+		*/
+		const Matrix leaky_relu()const;
+		/**
+		@brief softmax函数
+		详细情况见Function.h
+		*/
+		const Matrix softmax()const;
 		/**
 		@brief 返回行列式
 		*/
-		double Det();
+		float Det();
 		/**
 		@brief 返回num范数
 		@param num 几范数
 		*/
-		double Norm(int num = 1)const;
+		float Norm(int num = 1)const;
 		/**
 		@brief 返回对应索引的余子式
 		@param x 列索引
 		@param y 行索引
 		*/
-		double Cof(int x, int y);
-		double EigenvalueMax(double offset = 1e-8)const;
+		float Cof(int x, int y);
+		float EigenvalueMax(float offset = 1e-8)const;
 		/**
 		@brief 返回随机抽取的矩阵元素
 		*/
-		double RandSample();
+		float RandSample();
 		/**
 		@brief 返回矩阵元素和
 		@param num 设置次幂
 		@param _abs 是否取绝对值
 		*/
-		double Sum(int num = 1, bool _abs = false)const;
+		float Sum(int num = 1, bool _abs = false)const;
 		/**
 		@brief 重载运算符+
 		对应元素相加
 		*/
-		const Matrix operator + (const double val)const;
+		const Matrix operator + (const float val)const;
 		/**
 		@brief 重载运算符+
 		对应元素相加
@@ -405,7 +446,7 @@ namespace nn {
 		@brief 重载运算符+=
 		按元素相加
 		*/
-		void operator += (const double val);
+		void operator += (const float val);
 		/**
 		@brief 重载运算符+=
 		按元素相加
@@ -415,7 +456,7 @@ namespace nn {
 		@brief 友元重载运算符+
 		按元素相加
 		*/
-		friend const Matrix operator + (const double value, const Matrix &mat);
+		friend const Matrix operator + (const float value, const Matrix &mat);
 		/**
 		@brief 重载运算符-
 		按元素取相反数
@@ -425,7 +466,7 @@ namespace nn {
 		@brief 重载运算符-
 		按元素相减
 		*/
-		const Matrix operator - (const double val)const;
+		const Matrix operator - (const float val)const;
 		/**
 		@brief 重载运算符-
 		对应元素相减
@@ -435,7 +476,7 @@ namespace nn {
 		@brief 重载运算符-=
 		按元素相减
 		*/
-		void operator -= (const double val);
+		void operator -= (const float val);
 		/**
 		@brief 重载运算符-=
 		对应元素相减
@@ -445,12 +486,12 @@ namespace nn {
 		@brief 友元重载运算符-
 		按元素相减
 		*/
-		friend const Matrix operator - (const double value, const Matrix &mat);
+		friend const Matrix operator - (const float value, const Matrix &mat);
 		/**
 		@brief 重载运算符*
 		按元素相乘
 		*/
-		const Matrix operator * (const double val)const;
+		const Matrix operator * (const float val)const;
 		/**
 		@brief 重载运算符*
 		对应元素相乘
@@ -460,7 +501,7 @@ namespace nn {
 		@brief 重载运算符*=
 		按元素相乘
 		*/
-		void operator *= (const double val);
+		void operator *= (const float val);
 		/**
 		@brief 重载运算符*=
 		对应元素相乘
@@ -470,12 +511,12 @@ namespace nn {
 		@brief 友元重载运算符*
 		按元素相乘
 		*/
-		friend const Matrix operator * (const double value, const Matrix &mat);
+		friend const Matrix operator * (const float value, const Matrix &mat);
 		/**
 		@brief 重载运算符/
 		按元素相除
 		*/
-		const Matrix operator / (const double val)const;
+		const Matrix operator / (const float val)const;
 		/**
 		@brief 重载运算符/
 		矩阵乘法
@@ -485,7 +526,7 @@ namespace nn {
 		@brief 重载运算符/=
 		按元素相除
 		*/
-		void operator /= (const double val);
+		void operator /= (const float val);
 		/**
 		@brief 重载运算符/=
 		对应元素相除
@@ -495,7 +536,7 @@ namespace nn {
 		@brief 友元重载运算符/
 		按元素相乘
 		*/
-		friend const Matrix operator / (const double value, const Matrix &mat);
+		friend const Matrix operator / (const float value, const Matrix &mat);
 		/**
 		@brief 重载运算符=
 		深拷贝
@@ -515,20 +556,20 @@ namespace nn {
 		@brief 返回对应索引元素
 		@param index 索引
 		*/
-		double& operator () (const int index)const;
+		float& operator () (const int index)const;
 		/**
 		@brief 返回对应索引元素
 		@param row 行索引
 		@param col 列索引
 		*/
-		double& operator () (const int row, const int col)const;
+		float& operator () (const int row, const int col)const;
 		/**
 		@brief 返回对应索引元素
 		@param row 行索引
 		@param col 列索引
 		@param depth 通道索引
 		*/
-		double& operator () (const int row, const int col, const int depth)const;
+		float& operator () (const int row, const int col, const int depth)const;
 		/**
 		@brief 返回矩阵对应索引的列或行
 		@param index 索引
@@ -547,9 +588,14 @@ namespace nn {
 		int col;
 		int depth;
 		bool square;
-		double *matrix;
-
+		float *matrix;
+#ifdef LIGHT_MAT
+		int *recount;
+#endif
 		void init();
+#ifdef LIGHT_MAT
+		void createCount();
+#endif
 		void checkSquare();
 		void checkindex(int index)const;
 		void checkindex(int index_x, int index_y)const;
@@ -606,13 +652,13 @@ namespace nn {
 		int rows()const { return row; }
 		int cols()const { return col; }
 		int channels()const { return channel; }
-		double * matrix()const { return head; }
+		float * matrix()const { return head; }
 	private:
 		int row;
 		int col;
 		int channel;
-		double *it;
-		double *head;
+		float *it;
+		float *head;
 	};
 	template<typename Tp_>
 	inline MatCommaInitializer_ MatCommaInitializer_::operator , (Tp_ v)
@@ -621,7 +667,7 @@ namespace nn {
 			fprintf(stderr, errinfo[ERR_INFO_MEMOUT]);
 			throw MatCommaInitializer_();
 		}
-		*this->it = double(v);
+		*this->it = float(v);
 		++this->it;
 		return *this;
 	}

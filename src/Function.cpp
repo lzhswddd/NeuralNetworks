@@ -6,7 +6,7 @@ const Mat nn::Softmax(const Mat &y)
 	Mat y_ = y;
 	y_ -= Max(y_);
 	Mat y_exp = mExp(y_);
-	double y_sum = y_exp.Sum();
+	float y_sum = y_exp.Sum();
 	Mat out = y_exp / y_sum;
 	return out;
 }
@@ -29,6 +29,11 @@ const Mat nn::Quadratic(const Mat &y, const Mat &y0)
 const Mat nn::CrossEntropy(const Mat &y, const Mat &y0)
 {
 	return -Mult(y, mLog(y0));
+}
+
+const Mat nn::SoftmaxCrossEntropy(const Mat & y, const Mat & y0)
+{
+	return CrossEntropy(y, Softmax(y0));
 }
 
 const Mat nn::Sigmoid(const Mat &x)
@@ -79,6 +84,16 @@ const Mat nn::D_Softmax(const Mat &y)
 	return Mult(y, 1 - y);
 }
 
+const Mat nn::D_L1(const Mat & y, const Mat & y0)
+{
+	return ones(y.size3());
+}
+
+const Mat nn::D_L2(const Mat & y, const Mat & y0)
+{
+	return 2 * (y0 - y);
+}
+
 const Mat nn::D_Quadratic(const Mat &y, const Mat &y0)
 {
 	return y0 - y;
@@ -87,6 +102,11 @@ const Mat nn::D_Quadratic(const Mat &y, const Mat &y0)
 const Mat nn::D_CrossEntropy(const Mat &y, const Mat &y0)
 {
 	return y0 - y;
+}
+
+const Mat nn::D_SoftmaxCrossEntropy(const Mat & y, const Mat & y0)
+{
+	return Softmax(y0) - y;
 }
 
 const Mat nn::D_Sigmoid(const Mat &x)
@@ -154,6 +174,18 @@ void nn::SetFunc(string func_name, LossFunc *f, LossFunc *df)
 		*f = CrossEntropy;
 		*df = D_CrossEntropy;
 	}
+	else if (func_name == "SoftmaxCrossEntropy") {
+		*f = SoftmaxCrossEntropy;
+		*df = D_SoftmaxCrossEntropy;
+	}
+	else if (func_name == "L1") {
+		*f = L1;
+		*df = D_L1;
+	}
+	else if (func_name == "L2") {
+		*f = L2;
+		*df = D_L2;
+	}
 }
 void nn::SetFunc(string func_name, ActivationFunc *f, ActivationFunc *df)
 {
@@ -195,6 +227,18 @@ void nn::SetFunc(LossFunc func, LossFunc * f, LossFunc * df)
 	else if (func == CrossEntropy) {
 		*f = CrossEntropy;
 		*df = D_CrossEntropy;
+	}
+	else if (func == SoftmaxCrossEntropy) {
+		*f = SoftmaxCrossEntropy;
+		*df = D_SoftmaxCrossEntropy;
+	}
+	else if (func == L1) {
+		*f = L1;
+		*df = D_L1;
+	}
+	else if (func == L2) {
+		*f = L2;
+		*df = D_L2;
 	}
 }
 void nn::SetFunc(ActivationFunc func, ActivationFunc * f, ActivationFunc * df)
@@ -262,6 +306,18 @@ string nn::Func2String(LossFunc f)
 	}
 	else if (f == CrossEntropy) {
 		fun_name = "CrossEntropy";
+	}
+	else if (f == SoftmaxCrossEntropy) {
+		fun_name = "SoftmaxCrossEntropy";
+	}
+	else if (f == L1) {
+		fun_name = "L1";
+	}
+	else if (f == L2) {
+		fun_name = "L2";
+	}
+	else {
+		fun_name = "user custom";
 	}
 	return fun_name;
 }

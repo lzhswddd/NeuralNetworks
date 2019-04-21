@@ -3,6 +3,8 @@
 
 #define MALLOC_ALIGN 16
 
+#define FREE_PTR(ptr) if((ptr)!=nullptr) {delete (ptr); ptr=nullptr;}
+
 template<typename _Tp>
 static inline _Tp *alignPtr(_Tp *ptr, int n = (int) sizeof(_Tp)) {
 	return (_Tp *)(((size_t)ptr + n - 1) & -n);

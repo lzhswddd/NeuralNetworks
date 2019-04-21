@@ -2,30 +2,34 @@
 #include "TrainData.h"
 #include "imgprocess.h"
 #include <fstream>
+#include <algorithm>
 using std::ifstream;
+using std::pair;
 using namespace nn;
 
 nn::TrainData::TrainData()
 {
 }
 
-nn::TrainData::TrainData(string rootpath, string imglist, string imagedir, 
-	int batch_size, const Mat(*label_proces)(const Mat&))
+nn::TrainData::TrainData(string rootpath, string imglist, string imagedir,
+	int batch_size, const vector<Mat>(*label_process)(const Mat&))
 	: batch_size(batch_size), rootpath(rootpath)
 {
-	load_train_data(rootpath, imglist, imagedir, batch_size, label_proces);
+	load_train_data(rootpath, imglist, imagedir, batch_size, label_process);
 }
 
 void nn::TrainData::load_train_data(string rootpath, string imglist, string imagedir,
-	int batch_size, const Mat(*label_proces)(const Mat&))
+	int batch_size, const vector<Mat>(*label_process)(const Mat&))
 {
 	clear();
 	this->rootpath = rootpath;
 	this->batch_size = batch_size;
-	get_train_data(imglist, imagedir, label_proces);
-	range.resize(imgpath.size());
-	for (size_t i = 0; i < imgpath.size(); ++i)
-		range[i] = int(i);
+	get_train_data(imglist, imagedir, label_process);
+	batch_number = (int)imgpath.size() / batch_size;
+	data.resize(batch_size);
+	range.resize(batch_number);
+	for (int i = 0; i < batch_number; ++i)
+		range[i] = i;
 }
 
 
@@ -35,25 +39,21 @@ nn::TrainData::~TrainData()
 
 void nn::TrainData::reset()
 {
-	for (int &v : range)
-	{
-		int idx;
-		do {
-			idx = rand() % range.size();
-		} while (range[idx] == v);
-		int temp = range[idx];
-		range[idx] = v;
-		v = temp;
+	if (batchdata.size() == range.size()) {
+		random_shuffle(batchdata.begin(), batchdata.end());
 	}
 	index = 0;
 }
 
 void nn::TrainData::clear()
 {
-	vector<string>().swap(imgpath);
-	vector<Mat>().swap(data);
-	vector<Mat>().swap(label);
+	vector<vector<NetData>>().swap(batchdata);
 	vector<int>().swap(range);
+}
+
+int nn::TrainData::batchSize() const
+{
+	return batch_size;
 }
 
 int nn::TrainData::len() const
@@ -61,59 +61,85 @@ int nn::TrainData::len() const
 	return (int)range.size();
 }
 
-void nn::TrainData::batch(Mat & x, Mat & y)
+const vector<NetData>* nn::TrainData::batches()
 {
-	if (data.size() != range.size())
+	vector<NetData>* batch;
+	if (batchdata.size() == batch_number) {
+		batch = &batchdata[index];
+	}
+	else {
 		next();
-	x = data[index];
-	y = label[index];
-	index = (index + 1) % range.size();
+		batch = &batchdata[index];
+		if (batchdata.size() == batch_number) {
+			vector<vector<Mat>>().swap(label);
+			vector<Mat>().swap(data);
+			vector<string>().swap(imgpath);
+		}
+	}
+	index = (index + 1) % batch_number;
+	return batch;
 }
 
-void nn::TrainData::batches(vector<Mat>& x, vector<Mat>& y)
-{
-}
-
-void nn::TrainData::loadAllData()
+void nn::TrainData::load_all_data()
 {
 	index = 0;
 	for (int &v : range) {
 		next();
 		index += 1;
 	}
+	vector<vector<Mat>>().swap(label);
+	vector<Mat>().swap(data);
+	vector<string>().swap(imgpath);
+	index = 0;
 }
 
 void nn::TrainData::register_process(void(*image)(const Image&, Image&), void(*mat)(const Mat&, Mat&))
 {
 	process_image = image;
 	process_mat = mat;
-} 
+}
 
 void nn::TrainData::next()
 {
-	Image img = Imread(imgpath[index]);
-	if (process_image != nullptr)process_image(img, img);
-	Mat mat = Image2Mat(img);
-	if (process_mat != nullptr)process_mat(mat, mat);
-	data.push_back(mat);
+	vector<NetData> netData(batch_size);
+	for (int i = 0; i < batch_size; ++i) {
+		Image img = Imread(imgpath[index*batch_size + i]);
+		if (process_image != nullptr)process_image(img, img);
+		Mat mat = Image2Mat(img);
+		if (process_mat != nullptr)process_mat(mat, mat);
+		netData[i].input = mat;
+		netData[i].label = label[index*batch_size + i];
+	}
+	batchdata.push_back(netData);
 }
 
-void nn::TrainData::get_train_data(string imglist, string imagepath, const Mat(*label_proces)(const Mat&))
+void nn::TrainData::get_train_data(string imglist, string imagepath, const vector<Mat>(*label_process)(const Mat&))
 {
 	vector<string>().swap(imgpath);
 	ifstream in(rootpath + "\\" + imglist);
+	vector<string> file;
 	if (in.is_open()) {
 		string str;
 		while (std::getline(in, str)) {
-			vector<string> v = strsplit(str, '|');
-			imgpath.push_back(rootpath + "\\" + imagepath + "\\" + v[0]);
-			v = strsplit(v[1], ' ');
-			Mat label_(str2double(v), ROW);
-			if (label_proces != nullptr)
-				label.push_back(label_proces(label_));
-			else
-				label.push_back(label_);
+			file.push_back(str);
 		}
 		in.close();
+		random_shuffle(file.begin(), file.end());
+		for (string &s : file) {
+			vector<string> v = strsplit(s, ' ');
+			imgpath.push_back(rootpath + "\\" + imagepath + "\\" + v[0]);
+			v.erase(v.begin());
+			Mat label_(str2float(v), ROW);
+			if (label_process != nullptr)
+				label.push_back(label_process(label_));
+			else {
+				label.push_back(labelProcess(label_));
+			}
+		}
 	}
+}
+
+const vector<Mat> nn::TrainData::labelProcess(const Mat &l)
+{
+	return vector<Mat>(1, l);
 }

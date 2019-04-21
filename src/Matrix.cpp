@@ -1,6 +1,7 @@
 #include <iostream>
 #include <iomanip>
 #include "alignMalloc.h"
+#include "Function.h"
 #include "Matrix.h"
 #include "Mat.h"
 using namespace std;
@@ -19,7 +20,10 @@ Matrix::Matrix(int row, int col)
 	depth = 1;
 	this->row = row;
 	this->col = col;
-	matrix = (double*)fastMalloc(row*col*depth*sizeof(double));
+#ifdef LIGHT_MAT
+	createCount();
+#endif
+	matrix = (float*)fastMalloc(row*col*depth * sizeof(float));
 	if (matrix != nullptr)
 		memset(matrix, 0, length() * sizeof(matrix[0]));
 	checkSquare();
@@ -31,7 +35,10 @@ Matrix::Matrix(int row, int col, int depth)
 	this->row = row;
 	this->col = col;
 	this->depth = depth;
-	matrix = (double*)fastMalloc(row*col*depth*sizeof(double));
+#ifdef LIGHT_MAT
+	createCount();
+#endif
+	matrix = (float*)fastMalloc(row*col*depth * sizeof(float));
 	if (matrix != nullptr)
 		memset(matrix, 0, length() * sizeof(matrix[0]));
 	checkSquare();
@@ -43,7 +50,10 @@ Matrix::Matrix(Size size_)
 	row = size_.hei;
 	col = size_.wid;
 	depth = 1;
-	matrix = (double*)fastMalloc(row*col*depth*sizeof(double));
+#ifdef LIGHT_MAT
+	createCount();
+#endif
+	matrix = (float*)fastMalloc(row*col*depth * sizeof(float));
 	if (matrix != nullptr)
 		memset(matrix, 0, length() * sizeof(matrix[0]));
 	checkSquare();
@@ -55,12 +65,15 @@ Matrix::Matrix(Size3 size_)
 	row = size_.x;
 	col = size_.y;
 	depth = size_.z;
-	matrix = (double*)fastMalloc(row*col*depth*sizeof(double));
+#ifdef LIGHT_MAT
+	createCount();
+#endif
+	matrix = (float*)fastMalloc(row*col*depth * sizeof(float));
 	if (matrix != nullptr)
 		memset(matrix, 0, length() * sizeof(matrix[0]));
 	checkSquare();
 }
-Matrix::Matrix(double *matrix, int n)
+Matrix::Matrix(float *matrix, int n)
 {
 	init();
 	*this = Matrix(matrix, n, n);
@@ -79,15 +92,17 @@ Matrix::Matrix(int *matrix, int row, int col, int channel)
 		this->row = row;
 		this->col = col;
 		this->depth = channel;
-		this->matrix = (double*)fastMalloc(row*col*depth*sizeof(double));
+#ifdef LIGHT_MAT
+		createCount();
+#endif
+		this->matrix = (float*)fastMalloc(row*col*depth * sizeof(float));
 		if (this->matrix != nullptr)
 			for (int index = 0; index < length(); index++)
-				this->matrix[index] = (double)matrix[index];
-
+				this->matrix[index] = (float)matrix[index];
 	}
 	checkSquare();
 }
-Matrix::Matrix(double *matrix, int row, int col, int channel)
+Matrix::Matrix(float *matrix, int row, int col, int channel)
 {
 	init();
 	if (matrix != nullptr) {
@@ -96,25 +111,31 @@ Matrix::Matrix(double *matrix, int row, int col, int channel)
 		this->row = row;
 		this->col = col;
 		this->depth = channel;
-		this->matrix = (double*)fastMalloc(row*col*depth*sizeof(double));
+#ifdef LIGHT_MAT
+		createCount();
+#endif
+		this->matrix = (float*)fastMalloc(row*col*depth * sizeof(float));
 		if (this->matrix != nullptr)
-			memcpy(this->matrix, matrix, row*col*depth * sizeof(double));
-
+			memcpy(this->matrix, matrix, row*col*depth * sizeof(float));
 	}
 	checkSquare();
 }
 Matrix::Matrix(const Matrix &src)
 {
 	init();
+	*this = src;
+	/*init();
 	setvalue(src);
-	checkSquare();
+	checkSquare();*/
 }
 Matrix::Matrix(const Matrix *src)
 {
 	init();
+	*this = *src;
+	/*init();
 	if (src != nullptr)
 		setvalue(*src);
-	checkSquare();
+	checkSquare();*/
 }
 Matrix::Matrix(Matrix a, Matrix b, X_Y_Z merge)
 {
@@ -124,16 +145,19 @@ Matrix::Matrix(Matrix a, Matrix b, X_Y_Z merge)
 			row = a.row + b.row;
 			col = a.col;
 			depth = a.depth;
-			matrix = (double*)fastMalloc(row*col*depth*sizeof(double));
+#ifdef LIGHT_MAT
+			createCount();
+#endif
+			matrix = (float*)fastMalloc(row*col*depth * sizeof(float));
 			if (matrix != nullptr) {
 				memcpy(matrix, a.matrix,
-					a.row*a.col*a.depth * sizeof(double));
+					a.row*a.col*a.depth * sizeof(float));
 				memcpy(matrix + (a.row*a.col*a.depth), b.matrix,
-					b.row*b.col*b.depth * sizeof(double));
+					b.row*b.col*b.depth * sizeof(float));
 			}
 			else {
 				matrix = nullptr;
-			}			
+			}
 		}
 	}
 	else if (merge == COL) {
@@ -141,16 +165,19 @@ Matrix::Matrix(Matrix a, Matrix b, X_Y_Z merge)
 			row = a.row;
 			col = a.col + b.col;
 			depth = a.depth;
-			matrix = (double*)fastMalloc(row*col*depth*sizeof(double));
-			double *temp = a.matrix;
+#ifdef LIGHT_MAT
+			createCount();
+#endif
+			matrix = (float*)fastMalloc(row*col*depth * sizeof(float));
+			float *temp = a.matrix;
 			if (matrix != nullptr)
 				for (int i = 0; i < row; i++) {
 					memcpy(matrix + i * col*depth,
 						a.matrix + i * a.col*depth,
-						a.col*depth * sizeof(double));
+						a.col*depth * sizeof(float));
 					memcpy(matrix + i * col*depth + a.col*depth,
 						b.matrix + i * b.col*depth,
-						b.col*depth * sizeof(double));
+						b.col*depth * sizeof(float));
 				}
 			else {
 				matrix = nullptr;
@@ -166,13 +193,30 @@ Matrix::Matrix(MatCommaInitializer_ & m)
 }
 Matrix::~Matrix()
 {
-	if (matrix != nullptr) {
+#ifdef LIGHT_MAT
+	if (recount != 0) {
+		if (*recount == 0) {
+			release();
+			delete recount;
+			recount = nullptr;
+		}
+		else {
+			*recount -= 1;
+		}
+	}
+#else
+	release();
+#endif
+	col = 0;
+	row = 0;
+	depth = 0;
+	/*if (matrix != nullptr) {
 		fastFree(matrix);
 		matrix = nullptr;
-	}
+	}*/
 }
 
-double* Matrix::mat_()const
+float* Matrix::mat_()const
 {
 	return matrix;
 }
@@ -269,7 +313,7 @@ void Matrix::reshape(int row, int col, int channel)
 		fprintf(stderr, errinfo[ERR_INFO_EMPTY]);
 		throw errinfo[ERR_INFO_EMPTY];
 	}
-	if (length() != row*col*channel) {
+	if (length() != row * col*channel) {
 		fprintf(stderr, errinfo[ERR_INFO_UNLESS]);
 		throw errinfo[ERR_INFO_UNLESS];
 	}
@@ -292,17 +336,17 @@ bool Matrix::setSize(int row, int col)
 	}
 	return false;
 }
-void Matrix::setNum(double number, int index)
+void Matrix::setNum(float number, int index)
 {
 	checkindex(index);
 	matrix[index] = number;
 }
-void Matrix::setNum(double number, int index_y, int index_x)
+void Matrix::setNum(float number, int index_y, int index_x)
 {
 	checkindex(index_x, index_y);
 	matrix[index_y*col + index_x] = number;
 }
-void Matrix::setMat(double *mat, int hei, int wid)
+void Matrix::setMat(float *mat, int hei, int wid)
 {
 	if ((row <= 0 || col <= 0)) return;
 	Matrix::~Matrix();
@@ -316,13 +360,27 @@ void Matrix::setvalue(const Matrix &src)
 	depth = src.depth;
 	square = src.square;
 	if (src.matrix != nullptr) {
-		if (matrix != nullptr) {
-			fastFree(matrix);
-			matrix = nullptr;
+#ifdef LIGHT_MAT
+		if (recount != nullptr) {
+			if (*recount != 0) {
+				*recount -= 1;
+			}
+			else {
+#endif // LIGHT_MAT
+				if (matrix != nullptr) {
+					fastFree(matrix);
+					matrix = nullptr;
+				}
+
+#ifdef LIGHT_MAT
+			}
 		}
-		matrix = (double*)fastMalloc(row*col*depth*sizeof(double));
+		else
+			recount = new int(0);
+#endif // LIGHT_MAT
+		matrix = (float*)fastMalloc(row*col*depth * sizeof(float));
 		if (matrix != nullptr)
-			memcpy(matrix, src.matrix, row*col*depth * sizeof(double));
+			memcpy(matrix, src.matrix, row*col*depth * sizeof(float));
 	}
 	else matrix = nullptr;
 }
@@ -435,25 +493,32 @@ bool Matrix::Square()const
 {
 	return square;
 }
-double& Matrix::at(int index_y, int index_x)const
+void Matrix::release()
+{
+	if (matrix != nullptr) {
+		fastFree(matrix);
+		matrix = nullptr;
+	}
+}
+float& Matrix::at(int index_y, int index_x)const
 {
 	checkindex(index_x, index_y);
 	return matrix[index_y*col + index_x];
 }
-double& Matrix::at(int index)const
+float& Matrix::at(int index)const
 {
 	checkindex(index);
 	return matrix[index];
 }
 int Matrix::toX(int index)const
 {
-	return index%col;
+	return index % col;
 }
 int Matrix::toY(int index)const
 {
-	return index/col;
+	return index / col;
 }
-double Matrix::frist()const
+float Matrix::frist()const
 {
 	if (isEnable() == -1) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
@@ -461,19 +526,19 @@ double Matrix::frist()const
 	}
 	return matrix[0];
 }
-double& Matrix::findAt(double value)const
+float& Matrix::findAt(float value)const
 {
 	if (isEnable() == -1) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw errinfo[0];
 	}
-	static double err = NAN;
+	static float err = NAN;
 	for (int ind = 0; ind < length(); ind++)
 		if (matrix[ind] == value)
 			return matrix[ind];
 	return err;
 }
-double& Matrix::findmax()const
+float& Matrix::findmax()const
 {
 	if (isEnable() == -1) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
@@ -485,7 +550,7 @@ double& Matrix::findmax()const
 			max_adr = ind;
 	return matrix[max_adr];
 }
-double& Matrix::findmin()const
+float& Matrix::findmin()const
 {
 	if (isEnable() == -1) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
@@ -497,7 +562,7 @@ double& Matrix::findmin()const
 			min_adr = ind;
 	return matrix[min_adr];
 }
-int Matrix::find(double value)const
+int Matrix::find(float value)const
 {
 	if (isEnable() == -1) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
@@ -532,7 +597,7 @@ int Matrix::minAt()const
 			min_adr = ind;
 	return min_adr;
 }
-bool Matrix::contains(double value)const
+bool Matrix::contains(float value)const
 {
 	if (isEnable() == -1) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
@@ -560,7 +625,7 @@ void Matrix::show()const
 				cout << setw(8) << setprecision(2) << setfill(' ') << matrix[(i*col + j)*depth + z] << ", ";
 			}
 			cout << setw(8) << setprecision(2) << setfill(' ') << matrix[(i*col + col - 1)*depth + z];
-			cout << " ]" << endl;
+			cout << " ]";
 		}
 	}
 	cout.unsetf(ios::scientific);
@@ -571,32 +636,33 @@ void Matrix::show()const
 
 const Matrix Matrix::Abs()const
 {
-	Matrix mat(this);
-	return mAbs(mat);
+	return mAbs(*this);
 }
-const Matrix Matrix::Pow(int num)const
+const Matrix nn::Matrix::mPow(int num) const
 {
-	Matrix temp(this);
 	if (matrix == nullptr) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw errinfo[0];
 	}
 	if (square) {
-		temp = POW(temp, num);
+		return POW(*this, num);
 	}
 	else if (isEnable() == -1) {
 		cerr << errinfo[ERR_INFO_POW] << endl;
 		throw errinfo[0];
 	}
-	return temp;
 }
-double Matrix::Sum(int num, bool _abs)const
+const Matrix Matrix::Pow(int num)const
+{
+	return nn::mPow(*this, num);
+}
+float Matrix::Sum(int num, bool _abs)const
 {
 	if (isEnable() == -1) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw errinfo[0];
 	}
-	double sum = 0;
+	float sum = 0;
 	if (num == 1) {
 		for (int ind = 0; ind < length(); ind++)
 			if (_abs)
@@ -611,6 +677,12 @@ double Matrix::Sum(int num, bool _abs)const
 			else
 				sum += pow(matrix[ind], num);
 	return sum;
+}
+const Matrix nn::Matrix::clone() const
+{
+	Matrix dst;
+	dst.setvalue(*this);
+	return dst;
 }
 const Matrix Matrix::Opp()const
 {
@@ -638,8 +710,7 @@ const Matrix Matrix::t()const
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw errinfo[0];
 	}
-	Matrix mat(this);
-	return tran(mat);
+	return tran(*this);
 }
 const Matrix Matrix::Inv()const
 {
@@ -648,8 +719,7 @@ const Matrix Matrix::Inv()const
 		throw errinfo[0];
 	}
 	if (square) {
-		Matrix mat(this);
-		return inv(mat);
+		return inv(*this);
 	}
 	else {
 		Matrix m(matrix, row, col);
@@ -669,10 +739,9 @@ const Matrix Matrix::Inv()const
 }
 const Matrix Matrix::Reverse()const
 {
-	Matrix mat(this);
-	return reverse(mat);
+	return reverse(*this);
 }
-double Matrix::Det()
+float Matrix::Det()
 {
 	if (matrix == nullptr) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
@@ -683,7 +752,7 @@ double Matrix::Det()
 	else
 		return NAN;
 }
-double Matrix::Norm(int num)const
+float Matrix::Norm(int num)const
 {
 	if (matrix == nullptr) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
@@ -706,13 +775,13 @@ double Matrix::Norm(int num)const
 	//else if (isinf(num) == -1)
 	//	return abs(matrix[find(findmin())]);
 	else
-		return pow(Sum(num, true), 1 / double(num));
+		return pow(Sum(num, true), 1 / float(num));
 }
-double Matrix::Matrix::Cof(int x, int y)
+float Matrix::Matrix::Cof(int x, int y)
 {
 	return cof(*this, x, y);
 }
-double Matrix::EigenvalueMax(double offset)const
+float Matrix::EigenvalueMax(float offset)const
 {
 	if (matrix == nullptr) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
@@ -720,7 +789,7 @@ double Matrix::EigenvalueMax(double offset)const
 	}
 	if (square) {
 		int count = 0;
-		double err = 100 * offset;
+		float err = 100 * offset;
 		Matrix v;
 		Matrix u0 = ones(row, 1);
 		while (err > offset) {
@@ -740,11 +809,11 @@ double Matrix::EigenvalueMax(double offset)const
 		throw errinfo[0];
 	}
 }
-double Matrix::RandSample()
+float Matrix::RandSample()
 {
 	return mRandSample(*this);
 }
-const Matrix Matrix::EigenvectorsMax(double offset)const
+const Matrix Matrix::EigenvectorsMax(float offset)const
 {
 	if (matrix == nullptr) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
@@ -752,7 +821,7 @@ const Matrix Matrix::EigenvectorsMax(double offset)const
 	}
 	if (square) {
 		int count = 0;
-		double err = 100 * offset;
+		float err = 100 * offset;
 		Matrix v;
 		Matrix u0 = ones(row, 1);
 		while (err > offset) {
@@ -772,22 +841,55 @@ const Matrix Matrix::EigenvectorsMax(double offset)const
 		throw errinfo[0];
 	}
 }
+
+const Matrix nn::Matrix::sigmoid() const
+{
+	return Sigmoid(*this);
+}
+
+const Matrix nn::Matrix::tanh() const
+{
+	return Tanh(*this);
+}
+
+const Matrix nn::Matrix::relu() const
+{
+	return ReLU(*this);
+}
+
+const Matrix nn::Matrix::elu() const
+{
+	return ELU(*this);
+}
+
+const Matrix nn::Matrix::selu() const
+{
+	return SELU(*this);
+}
+
+const Matrix nn::Matrix::leaky_relu() const
+{
+	return LReLU(*this);
+}
+
+const Matrix nn::Matrix::softmax() const
+{
+	return Softmax(*this);
+}
+
 const Matrix Matrix::Exp()const
 {
-	Matrix mat(this);
-	return mExp(mat);
+	return mExp(*this);
 }
 
 const Matrix Matrix::Log()const
 {
-	Matrix mat(this);
-	return mLog(mat);
+	return mLog(*this);
 }
 
 const Matrix Matrix::Sqrt()const
 {
-	Matrix mat(this);
-	return mSqrt(mat);
+	return mSqrt(*this);
 }
 
 void Matrix::init()
@@ -796,12 +898,22 @@ void Matrix::init()
 	col = 0;
 	depth = 0;
 	matrix = nullptr;
+#ifdef LIGHT_MAT
+	recount = 0;
+#endif // LIGHT_MAT
 }
+
+#ifdef LIGHT_MAT
+void nn::Matrix::createCount()
+{
+	recount = new int(0);
+}
+#endif
 void Matrix::checkSquare()
 {
-	if (row == col) 
+	if (row == col)
 		square = true;
-	else 
+	else
 		square = false;
 }
 void Matrix::checkindex(int index)const
@@ -843,7 +955,7 @@ void Matrix::checkindex(int index_x, int index_y)const
 	}
 }
 
-const Matrix Matrix::operator + (const double val)const
+const Matrix Matrix::operator + (const float val)const
 {
 	if (matrix == nullptr) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
@@ -887,7 +999,7 @@ const Matrix Matrix::operator + (const Matrix &a)const
 				mark((j + i * col)*depth + z) = matrix[(j + i * col)*depth + z] + a((j + i * col)*depth + z);
 	return mark;
 }
-void Matrix::operator += (const double val)
+void Matrix::operator += (const float val)
 {
 	*this = *this + val;
 }
@@ -908,7 +1020,7 @@ const Matrix Matrix::operator-(void) const
 				mark((j + i * col)*depth + z) = -mark((j + i * col)*depth + z);
 	return mark;
 }
-const Matrix Matrix::operator - (const double val)const
+const Matrix Matrix::operator - (const float val)const
 {
 	if (matrix == nullptr) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
@@ -952,7 +1064,7 @@ const Matrix Matrix::operator - (const Matrix &a)const
 				mark((j + i * col)*depth + z) = matrix[(j + i * col)*depth + z] - a((j + i * col)*depth + z);
 	return mark;
 }
-void Matrix::operator-=(const double val)
+void Matrix::operator-=(const float val)
 {
 	*this = *this - val;
 }
@@ -960,7 +1072,7 @@ void Matrix::operator-=(const Matrix & a)
 {
 	*this = *this - a;
 }
-const Matrix Matrix::operator * (const double val)const
+const Matrix Matrix::operator * (const float val)const
 {
 	if (matrix == nullptr) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
@@ -997,14 +1109,14 @@ const Matrix Matrix::operator * (const Matrix &a)const
 	for (int z = 0; z < depth; z++)
 		for (int i = 0; i < row; i++)
 			for (int j = 0; j < a.col; j++) {
-				double temp = 0;
+				float temp = 0;
 				for (int d = 0; d < col; d++)
 					temp = temp + matrix[(i*col + d)*depth + z] * a((j + d * a.col)*depth + z);
 				mark((j + i * a.col)*depth + z) = temp;
 			}
 	return mark;
 }
-void Matrix::operator*=(const double val)
+void Matrix::operator*=(const float val)
 {
 	*this = *this * val;
 }
@@ -1012,9 +1124,9 @@ void Matrix::operator*=(const Matrix & a)
 {
 	*this = *this * a;
 }
-const Matrix Matrix::operator / (const double val)const
+const Matrix Matrix::operator / (const float val)const
 {
-	return (*this) * (1.0 / val);
+	return (*this) * (1.0f / val);
 }
 const Matrix Matrix::operator / (const Matrix &a)const
 {
@@ -1039,7 +1151,7 @@ const Matrix Matrix::operator / (const Matrix &a)const
 				mark((j + i * col)*depth + z) = matrix[(j + i * col)*depth + z] / a((j + i * col)*depth + z);
 	return mark;
 }
-void Matrix::operator/=(const double val)
+void Matrix::operator/=(const float val)
 {
 	*this = *this / val;
 }
@@ -1049,7 +1161,27 @@ void Matrix::operator/=(const Matrix & a)
 }
 void Matrix::operator = (const Matrix &temp)
 {
+#ifdef LIGHT_MAT
+	if (recount != nullptr) {
+		if (*recount != 0) {
+			*recount -= 1;
+		}
+		else {
+			delete recount;
+			recount = nullptr;
+			release();
+		}
+	}
+	recount = temp.recount;
+	if (recount != nullptr)
+		*recount += 1;
+	row = temp.row;
+	col = temp.col;
+	depth = temp.depth;
+	matrix = temp.matrix;
+#else
 	setvalue(temp);
+#endif
 }
 bool Matrix::operator == (const Matrix &a)const
 {
@@ -1062,7 +1194,7 @@ bool Matrix::operator == (const Matrix &a)const
 	if (depth != a.depth) {
 		return false;
 	}
-	if (memcmp(matrix, a.matrix, col*row*depth * sizeof(double)) == 0)
+	if (memcmp(matrix, a.matrix, col*row*depth * sizeof(float)) == 0)
 		return true;
 	return false;
 }
@@ -1070,9 +1202,9 @@ bool Matrix::operator != (const Matrix & a)const
 {
 	return !(*this == a);
 }
-double & Matrix::operator()(const int index) const
+float & Matrix::operator()(const int index) const
 {
-	if (index >length() - 1) {
+	if (index > length() - 1) {
 		cerr << errinfo[ERR_INFO_MEMOUT] << endl;
 		throw errinfo[0];
 	}
@@ -1086,13 +1218,13 @@ double & Matrix::operator()(const int index) const
 	}
 	return matrix[index];
 }
-double& Matrix::operator()(const int row, const int col) const
+float& Matrix::operator()(const int row, const int col) const
 {
-	if (row > this->row - 1|| col > this->col - 1) {
+	if (row > this->row - 1 || col > this->col - 1) {
 		cerr << errinfo[ERR_INFO_MEMOUT] << endl;
 		throw errinfo[0];
 	}
-	if (row < 0|| col < 0) {
+	if (row < 0 || col < 0) {
 		cerr << errinfo[ERR_INFO_VALUE] << endl;
 		throw errinfo[0];
 	}
@@ -1102,7 +1234,7 @@ double& Matrix::operator()(const int row, const int col) const
 	}
 	return matrix[(row*this->col + col)*depth];
 }
-double & Matrix::operator()(const int row, const int col, const int depth) const
+float & Matrix::operator()(const int row, const int col, const int depth) const
 {
 	if (row > this->row - 1 || col > this->col - 1 || depth > this->depth - 1) {
 		cerr << errinfo[ERR_INFO_MEMOUT] << endl;
@@ -1148,6 +1280,5 @@ const Matrix Matrix::operator [] (const int channel)const
 {
 	return mSplit(*this, channel);
 }
-
 
 

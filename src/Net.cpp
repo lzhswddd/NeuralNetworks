@@ -5,169 +5,124 @@ using namespace nn;
 
 Net::Net()
 {
+	netTree.data = Layer();
+	netTree.parent = nullptr;
 }
-
 
 Net::~Net()
 {
 }
 
-int nn::Net::initialize(int input_channel)
+vector<int> nn::Net::initialize(int input_channel)
 {
-	for (vector<LayerInfo>::iterator layerInfo = config.begin(); layerInfo != config.end(); ++layerInfo) {
-		switch (layerInfo->type)
-		{
-		case nn::CONV2D:
-			layer.push_back(CreateMat(layerInfo->convInfo.kern_size, layerInfo->convInfo.kern_size, layerInfo->convInfo.channel*input_channel));
-			layer.push_back(CreateMat(1, 1, layerInfo->convInfo.channel));
-			input_channel = layerInfo->convInfo.channel;
-			if (layerInfo->convInfo.isact) {
-				layerInfo = config.insert(layerInfo + 1, Activation(layerInfo->convInfo.active));
-			}
-			break;
-		case nn::FULL_CONNECTION:
-			fprintf(stderr, "任意尺寸初始化不允许有全连接层!\n");
-			throw FULL_CONNECTION;
-		default:
-			break;
-		}
-	}
-	return input_channel;
+	vector<int> channel(1);
+	channel[0] = input_channel;
+	initialize_channel(&netTree, &channel, 0);
+	return channel;
 }
-Size3 nn::Net::initialize(Size3 input_size)
+
+vector<Size3> nn::Net::initialize(Size3 input_size)
 {
-	for (vector<LayerInfo>::iterator layerInfo = config.begin(); layerInfo != config.end(); ++layerInfo) {
-		switch (layerInfo->type)
-		{
-		case nn::CONV2D:
-			layer.push_back(CreateMat(layerInfo->convInfo.kern_size, layerInfo->convInfo.kern_size, layerInfo->convInfo.channel*input_size.z));
-			layer.push_back(CreateMat(1, 1, layerInfo->convInfo.channel));
-			if (!layerInfo->convInfo.is_copy_border)
-				input_size = mCalSize(input_size, Size3(layerInfo->convInfo.kern_size, layerInfo->convInfo.kern_size, layerInfo->convInfo.channel*input_size.z), layerInfo->convInfo.anchor, layerInfo->convInfo.strides);
-			else
-				input_size.z = layerInfo->convInfo.channel;
-			if (layerInfo->convInfo.isact) {
-				layerInfo = config.insert(layerInfo + 1, Activation(layerInfo->convInfo.active));
-			}
-			break;
-		case nn::MAX_POOL:
-			input_size.x /= layerInfo->pInfo.size.hei;
-			input_size.y /= layerInfo->pInfo.size.wid;
-			break;
-		case nn::AVERAGE_POOL:
-			input_size.x /= layerInfo->pInfo.size.hei;
-			input_size.y /= layerInfo->pInfo.size.wid;
-			break;
-		case nn::FULL_CONNECTION:
-			if (input_size.z != 1 && input_size.y != 1)
-			{
-				layerInfo = config.insert(layerInfo, Reshape(Size3(input_size.x*input_size.y*input_size.z, 1, 1)));
-				--layerInfo;
-			}
-			input_size = Size3(input_size.x*input_size.y*input_size.z, 1, 1);
-			layer.push_back(CreateMat(layerInfo->fcInfo.size, input_size.x, 1));
-			layer.push_back(CreateMat(layerInfo->fcInfo.size, 1, 1));
-			if (layerInfo->fcInfo.isact) {
-				layerInfo = config.insert(layerInfo + 1, Activation(layerInfo->fcInfo.active));
-			}
-			break;
-		case nn::ACTIVATION:
-			break;
-		case nn::RESHAPE:
-			input_size = layerInfo->reshapeInfo.size;
-			break;
-		default:
-			break;
-		}
-	}
-	return input_size;
+	vector<Size3> xsize(1);
+	xsize[0] = input_size;
+	initialize_size(&netTree, xsize, 0);
+	return xsize;
 }
 
 void nn::Net::clear()
 {
-	vector<LayerInfo>().swap(config);
-	vector<Mat>().swap(layer);
+	netTree.child.clear();
 }
 
-Mat nn::Net::forward(const Mat & input) const
+vector<Mat> nn::Net::forward(const Mat & input) const
 {
-	if (layer.empty())return Mat();
-	if (config.empty())return Mat();
-	Mat y = input;
-	int layer_num = 0;
-	for (vector<LayerInfo>::const_iterator layerInfo = config.begin(); layerInfo != config.end(); ++layerInfo) {
-		switch (layerInfo->type)
-		{
-		case CONV2D:
-			y = conv2d(y, layer[layer_num * 2], layerInfo->convInfo.strides, layerInfo->convInfo.anchor, layerInfo->convInfo.is_copy_border) + layer[layer_num * 2 + 1];
-			layer_num += 1;
-			break;
-		case MAX_POOL:
-			y = MaxPool(y, layerInfo->pInfo.size, layerInfo->pInfo.strides);
-			break;
-		case AVERAGE_POOL:
-			y = AveragePool(y, layerInfo->pInfo.size, layerInfo->pInfo.strides);
-			break;
-		case FULL_CONNECTION:
-			y = FullConnection(y, layer[layer_num * 2], layer[layer_num * 2 + 1]);
-			layer_num += 1;
-			break;
-		case ACTIVATION:
-			y = layerInfo->activation.activation_f(y);
-			break;
-		case RESHAPE:
-			y.reshape(layerInfo->reshapeInfo.size);
-		}
-	}
+	if (netTree.child.empty())return vector<Mat>();
+	vector<Mat> y(1);
+	y[0] = input;
+	nn::forward(&netTree, y, 0);
 	return y;
 }
 
-void nn::Net::add(LayerInfo layerInfo)
+NetNode<Layer>* nn::Net::NetTree()
 {
-	config.push_back(layerInfo);
+	return &netTree;
 }
 
-void nn::Net::addActivation(ActivationFunc act_f)
+const NetNode<Layer>* nn::Net::NetTree()const
 {
-	config.push_back(Activation(act_f));
+	return &netTree;
 }
 
-void nn::Net::addMaxPool(Size poolsize, int strides)
+void nn::Net::add(Layer layerInfo)
 {
-	config.push_back(MaxPool(poolsize, strides));
+	netTree.child.push_back(CreateNode(layerInfo, &netTree));
 }
 
-void nn::Net::addMaxPool(int pool_row, int pool_col, int strides)
+void nn::Net::add(Layer layerInfo, string layer_name, bool sibling)
 {
-	config.push_back(MaxPool(Size(pool_row, pool_col), strides));
+	if (layer_name == "")
+		if (sibling) {
+			netTree.child[netTree.child.size() - 1].sibling.push_back(NetNode<Layer>());
+			(netTree.child[netTree.child.size() - 1].sibling.end() - 1)->child.push_back(CreateNode(layerInfo, &(netTree.child[netTree.child.size() - 1])));
+		}
+		else
+			netTree.child[netTree.child.size() - 1].child.push_back(CreateNode(layerInfo, &(netTree.child[netTree.child.size() - 1])));
+	else
+		insert_layer(&netTree, layer_name, layerInfo, sibling);
 }
 
-void nn::Net::addAveragePool(Size poolsize, int strides)
+void nn::Net::addLoss(LossFunc loss_f, string layer_name)
 {
-	config.push_back(AveragePool(poolsize, strides));
+	netTree.child.push_back(CreateNode(Loss(loss_f, layer_name), &netTree));
 }
 
-void nn::Net::addAveragePool(int pool_row, int pool_col, int strides)
+void nn::Net::addActivation(ActivationFunc act_f, string layer_name)
 {
-	config.push_back(AveragePool(Size(pool_row, pool_col), strides));
+	netTree.child.push_back(CreateNode(Activation(act_f, layer_name), &netTree));
 }
 
-void nn::Net::addDense(int layer_size, ActivationFunc act_f)
+void nn::Net::addMaxPool(Size poolsize, int strides, string layer_name)
 {
-	config.push_back(Dense(layer_size, act_f));
+	netTree.child.push_back(CreateNode(MaxPool(poolsize, strides, layer_name), &netTree));
 }
 
-void nn::Net::addFullConnect(int layer_size, ActivationFunc act_f)
+void nn::Net::addMaxPool(int pool_row, int pool_col, int strides, string layer_name)
 {
-	config.push_back(FullConnect(layer_size, act_f));
+	netTree.child.push_back(CreateNode(MaxPool(Size(pool_row, pool_col), strides, layer_name), &netTree));
 }
 
-void nn::Net::addConv2D(int channel, int kern_size, bool is_copy_border, Size strides, Point anchor, ActivationFunc act_f)
+void nn::Net::addAveragePool(Size poolsize, int strides, string layer_name)
 {
-	config.push_back(Conv2D(channel, kern_size, is_copy_border, act_f, strides, anchor));
+	netTree.child.push_back(CreateNode(AveragePool(poolsize, strides, layer_name), &netTree));
 }
 
-const Mat nn::Net::operator()(const Mat & input) const
+void nn::Net::addAveragePool(int pool_row, int pool_col, int strides, string layer_name)
+{
+	netTree.child.push_back(CreateNode(AveragePool(Size(pool_row, pool_col), strides, layer_name), &netTree));
+}
+
+void nn::Net::addDense(int layer_size, ActivationFunc act_f, string layer_name)
+{
+	netTree.child.push_back(CreateNode(Dense(layer_size, act_f, layer_name), &netTree));
+}
+
+void nn::Net::addFullConnect(int layer_size, ActivationFunc act_f, string layer_name)
+{
+	netTree.child.push_back(CreateNode(FullConnect(layer_size, act_f, layer_name), &netTree));
+}
+
+void nn::Net::addConv2D(int channel, int kern_size, bool is_copy_border, string layer_name, Size strides, Point anchor, ActivationFunc act_f)
+{
+	netTree.child.push_back(CreateNode(Conv2D(channel, kern_size, is_copy_border, act_f, layer_name, strides, anchor), &netTree));
+}
+
+const vector<Mat> nn::Net::operator()(const Mat & input) const
 {
 	return forward(input);
+}
+
+std::ostream & nn::operator<<(std::ostream & out, const Net & net)
+{
+	show_net(&net.netTree, out);
+	return out;
 }

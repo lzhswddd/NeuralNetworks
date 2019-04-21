@@ -8,6 +8,8 @@
 #include "Net.h"
 #include "method.h"
 #include "TrainData.h"
+#include "Optimizer.h"
+#include "Train.h"
 #include <string>
 #include <vector>
 using std::vector;

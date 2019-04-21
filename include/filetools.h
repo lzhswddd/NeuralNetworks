@@ -87,11 +87,11 @@ static vector<string> strsplit(string &str, char ch)
 	return spl;
 }
 
-static vector<double> str2double(vector<string> &str)
+static vector<float> str2float(vector<string> &str)
 {
-	vector<double> v;
+	vector<float> v;
 	for (string &s : str) 
-		v.push_back(stod(s));
+		v.push_back(stof(s));
 	return v;
 }
 

@@ -95,7 +95,7 @@ void nn::RGB2Gray(const Image & src, Image & dst)
 	}
 }
 
-void nn::resize(const Image & src, Image & dst, double xRatio, double yRatio, ReductionMothed mothed)
+void nn::resize(const Image & src, Image & dst, float xRatio, float yRatio, ReductionMothed mothed)
 {
 	if (src.empty())return;
 	int rows = static_cast<int>(src.rows * yRatio);
@@ -150,7 +150,7 @@ void nn::resize(const Image & src, Image & dst, double xRatio, double yRatio, Re
 
 void nn::resize(const Image & src, Image & dst, Size newSize, ReductionMothed mothed)
 {
-	resize(src, dst, newSize.wid / double(src.cols), newSize.hei / double(src.rows), mothed);
+	resize(src, dst, newSize.wid / float(src.cols), newSize.hei / float(src.rows), mothed);
 }
 
 void nn::rotate(const Image & src, Image & dst, RotateAngle dice)
@@ -318,7 +318,7 @@ void nn::verticalProjection(const Image & src, Mat &vertical)
 			FOR_IMAGE(j, src, 2) {
 				sum += src(i, j, k);
 			}
-			vertical(i, 0, k) = sum;
+			vertical(i, 0, k) = (float)sum;
 		}
 	}
 }
@@ -333,7 +333,7 @@ void nn::horizontalProjection(const Image & src, Mat &horizontal)
 			FOR_IMAGE(j, src, 1) {
 				sum += src(j, i, k);
 			}
-			horizontal(0, i, k) = sum;
+			horizontal(0, i, k) = (float)sum;
 		}
 	}
 }
