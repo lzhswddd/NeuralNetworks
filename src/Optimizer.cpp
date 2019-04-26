@@ -23,7 +23,7 @@ void Optimizer::RegisterMethod(OptimizerMethod method)
 {
 	this->method = method;
 }
-OptimizerMethod Optimizer::Method() const
+OptimizerMethod Optimizer::OpMethod() const
 {
 	return method;
 }
@@ -32,7 +32,7 @@ OptimizerMethod Optimizer::Method() const
 */
 Method::Method() :Optimizer() {}
 Method::Method(float step) : Optimizer(step) {}
-void Method::Run(vector<Mat> &dlayer, const NetData &x, vector<float> &error) {}
+void Method::Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error) {}
 Optimizer* Method::minimize()const
 {
 	Optimizer* train = new Method(*this);
@@ -51,12 +51,12 @@ Mat Method::Params() const
 =======================    GradientDescentÓÅ»¯Æ÷    =======================
 */
 GradientDescentOptimizer::GradientDescentOptimizer(float step) : Optimizer(step) {}
-void GradientDescentOptimizer::Run(vector<Mat> &dlayer, const NetData &x, vector<float> &error)
+void GradientDescentOptimizer::Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error)
 {
 	/**
 	a = a - step * df(a, x)
 	*/
-	if (!Enable(x.input, x.label))return;
+	if (!x)return;
 	train->Jacobi(x, dlayer, error);
 	for (size_t layer_num = 0; layer_num < dlayer.size(); ++layer_num) {
 		dlayer[layer_num] = -step * dlayer[layer_num];
@@ -94,13 +94,29 @@ void MomentumOptimizer::init(vector<Size3>& size)
 	for (size_t layer_num = 0; layer_num < size.size(); ++layer_num)
 		ma[layer_num] = zeros(size[layer_num]);
 }
-void MomentumOptimizer::Run(vector<Mat> &dlayer, const NetData &x, vector<float> &error)
+void nn::MomentumOptimizer::save(string file) const
+{
+	FILE *out = fopen(file.c_str(), "wb");
+	if (out) {
+		SaveParam(out, &ma);
+		fclose(out);
+	}
+}
+void nn::MomentumOptimizer::load(string file)
+{
+	FILE *in = fopen(file.c_str(), "rb");
+	if (in) {
+		LoadParam(in, &ma);
+		fclose(in);
+	}
+}
+void MomentumOptimizer::Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error)
 {
 	/**
 	ma = momentum*ma + step * df(a, x)
 	a = a - ma
 	*/
-	if (!Enable(x.input, x.label))return;
+	if (!x)return;
 	train->Jacobi(x, dlayer, error);
 	for (size_t layer_num = 0; layer_num < dlayer.size(); ++layer_num) {
 		ma[layer_num] = momentum * ma[layer_num] + step * dlayer[layer_num];
@@ -142,13 +158,29 @@ void NesterovMomentumOptimizer::init(vector<Size3>& size)
 	for (size_t layer_num = 0; layer_num < size.size(); ++layer_num)
 		ma[layer_num] = zeros(size[layer_num]);
 }
-void NesterovMomentumOptimizer::Run(vector<Mat> &dlayer, const NetData &x, vector<float> &error)
+void nn::NesterovMomentumOptimizer::save(string file) const
+{
+	FILE *out = fopen(file.c_str(), "wb");
+	if (out) {
+		SaveParam(out, &ma);
+		fclose(out);
+	}
+}
+void nn::NesterovMomentumOptimizer::load(string file)
+{
+	FILE *in = fopen(file.c_str(), "rb");
+	if (in) {
+		LoadParam(in, &ma);
+		fclose(in);
+	}
+}
+void NesterovMomentumOptimizer::Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error)
 {
 	/**
 	ma = momentum*ma + step * df(a - momentum*ma, x)
 	a = a - ma
 	*/
-	if (!Enable(x.input, x.label))return;
+	if (!x)return;
 	for (size_t layer_num = 0; layer_num < ma.size(); ++layer_num) {
 		dlayer[layer_num] = -momentum * ma[layer_num];
 	}
@@ -193,13 +225,29 @@ void AdagradOptimizer::init(vector<Size3>& size)
 	for (size_t layer_num = 0; layer_num < size.size(); ++layer_num)
 		alpha[layer_num] = zeros(size[layer_num]);
 }
-void AdagradOptimizer::Run(vector<Mat> &dlayer, const NetData &x, vector<float> &error)
+void nn::AdagradOptimizer::save(string file) const
+{
+	FILE *out = fopen(file.c_str(), "wb");
+	if (out) {
+		SaveParam(out, &alpha);
+		fclose(out);
+	}
+}
+void nn::AdagradOptimizer::load(string file)
+{
+	FILE *in = fopen(file.c_str(), "rb");
+	if (in) {
+		LoadParam(in, &alpha);
+		fclose(in);
+	}
+}
+void AdagradOptimizer::Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error)
 {
 	/**
 	alpha = alpha + df(a, x)^2
 	a = a - step/sqrt(alpha + epsilon)*df(a, x)
 	*/
-	if (!Enable(x.input, x.label))return;
+	if (!x)return;
 	train->Jacobi(x, dlayer, error);
 	for (size_t layer_num = 0; layer_num < dlayer.size(); ++layer_num) {
 		alpha[layer_num] = alpha[layer_num] + mPow(dlayer[layer_num], 2);
@@ -242,13 +290,29 @@ void RMSPropOptimizer::init(vector<Size3>& size)
 	for (size_t layer_num = 0; layer_num < size.size(); ++layer_num)
 		alpha[layer_num] = zeros(size[layer_num]);
 }
-void RMSPropOptimizer::Run(vector<Mat> &dlayer, const NetData &x, vector<float> &error)
+void nn::RMSPropOptimizer::save(string file) const
+{
+	FILE *out = fopen(file.c_str(), "wb");
+	if (out) {
+		SaveParam(out, &alpha);
+		fclose(out);
+	}
+}
+void nn::RMSPropOptimizer::load(string file)
+{
+	FILE *in = fopen(file.c_str(), "rb");
+	if (in) {
+		LoadParam(in, &alpha);
+		fclose(in);
+	}
+}
+void RMSPropOptimizer::Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error)
 {
 	/**
 	alpha = beta*alpha + (1 - beta)*df(a, x)^2
 	a = a - step/sqrt(alpha + epsilon)*df(a, x)
 	*/
-	if (!Enable(x.input, x.label))return;
+	if (!x)return;
 	train->Jacobi(x, dlayer, error);
 	for (size_t layer_num = 0; layer_num < dlayer.size(); ++layer_num) {
 		alpha[layer_num] = decay * alpha[layer_num] + (1 - decay) *  mPow(dlayer[layer_num], 2);
@@ -299,14 +363,32 @@ void AdamOptimizer::init(vector<Size3>& size)
 		alpha[layer_num] = zeros(size[layer_num]);
 	}
 }
-void AdamOptimizer::Run(vector<Mat> &dlayer, const NetData &x, vector<float> &error)
+void nn::AdamOptimizer::save(string file) const
+{
+	FILE *out = fopen(file.c_str(), "wb");
+	if (out) {
+		SaveParam(out, &ma);
+		SaveParam(out, &alpha);
+		fclose(out);
+	}
+}
+void nn::AdamOptimizer::load(string file)
+{
+	FILE *in = fopen(file.c_str(), "rb");
+	if (in) {
+		LoadParam(in, &ma);
+		LoadParam(in, &alpha);
+		fclose(in);
+	}
+}
+void AdamOptimizer::Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error)
 {
 	/**
 	ma = beta1*ma + (1 - beta1)*df(a, x)
 	alpha = beta2*alpha + (1 - beta2)*df(a, x)^2
 	a = a - step/sqrt(alpha + epsilon)*ma
 	*/
-	if (!Enable(x.input, x.label))return;
+	if (!x)return;
 	train->Jacobi(x, dlayer, error);
 	for (size_t layer_num = 0; layer_num < dlayer.size(); ++layer_num) {
 		Mat d = dlayer[layer_num];
@@ -363,14 +445,32 @@ void NesterovAdamOptimizer::init(vector<Size3>& size)
 		alpha[layer_num] = zeros(size[layer_num]);
 	}
 }
-void NesterovAdamOptimizer::Run(vector<Mat> &dlayer, const NetData &x, vector<float> &error)
+void nn::NesterovAdamOptimizer::save(string file) const
+{
+	FILE *out = fopen(file.c_str(), "wb");
+	if (out) {
+		SaveParam(out, &ma);
+		SaveParam(out, &alpha);
+		fclose(out);
+	}
+}
+void nn::NesterovAdamOptimizer::load(string file)
+{
+	FILE *in = fopen(file.c_str(), "rb");
+	if (in) {
+		LoadParam(in, &ma);
+		LoadParam(in, &alpha);
+		fclose(in);
+	}
+}
+void NesterovAdamOptimizer::Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error)
 {
 	/**
 	ma = beta1*ma + (1 - beta1)*df(a - step/sqrt(alpha + epsilon)*ma, x)
 	alpha = beta2*alpha + (1 - beta2)*df(a - step/sqrt(alpha + epsilon)*ma, x)^2
 	a = a - step/sqrt(alpha + epsilon)*ma
 	*/
-	if (!Enable(x.input, x.label))return;
+	if (!x)return;
 	for (size_t layer_num = 0; layer_num < ma.size(); ++layer_num) {
 		dlayer[layer_num] = -Mult(step / mSqrt(alpha[layer_num] + epsilon), ma[layer_num]);
 	}
@@ -418,11 +518,11 @@ Mat NesterovAdamOptimizer::Params() const
 }
 
 
-Optimizer * nn::CreateOptimizer(Optimizer * op)
+Optimizer * Optimizer::CreateOptimizer(Optimizer * op)
 {
-	return CreateOptimizer(op->Method(), op->Step(), op->Params());
+	return CreateOptimizer(op->OpMethod(), op->Step(), op->Params());
 }
-Optimizer * nn::CreateOptimizer(OptimizerInfo op)
+Optimizer * Optimizer::CreateOptimizer(OptimizerInfo op)
 {
 	switch (op.type)
 	{
@@ -446,7 +546,7 @@ Optimizer * nn::CreateOptimizer(OptimizerInfo op)
 		return nullptr;
 	}
 }
-Optimizer * nn::CreateOptimizer(OptimizerMethod opm, float step, const Mat & value)
+Optimizer * Optimizer::CreateOptimizer(OptimizerMethod opm, float step, const Mat & value)
 {
 	switch (opm)
 	{
@@ -468,5 +568,29 @@ Optimizer * nn::CreateOptimizer(OptimizerMethod opm, float step, const Mat & val
 		return NesterovAdamOptimizer(step).minimize(value(0), value(1), value(2));
 	default:
 		return nullptr;
+	}
+}
+
+void Optimizer::SaveParam(FILE * out, const vector<Mat>* vec)
+{
+	size_t len = vec->size();
+	fwrite(&len, sizeof(size_t), 1, out);
+	for (const Mat &mat : *vec) {
+		int param[3] = { mat.rows(), mat.cols(), mat.channels() };
+		fwrite(param, sizeof(int) * 3, 1, out);
+		fwrite(mat, sizeof(float)*mat.length(), 1, out);
+	}
+}
+
+void Optimizer::LoadParam(FILE * in, vector<Mat>* vec)
+{
+	size_t len;
+	fread(&len, sizeof(size_t), 1, in);
+	vec->resize(len);
+	for (Mat &mat : *vec) {
+		int param[3] = { 0 };
+		fread(param, sizeof(int) * 3, 1, in);
+		mat = zeros(param[0], param[1], param[2]);
+		fread(mat, sizeof(float)*mat.length(), 1, in);
 	}
 }

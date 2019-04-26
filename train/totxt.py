@@ -18,10 +18,10 @@ def get_files(filename):  # 提取文件夹下文件名、目录
 
 
 path, label = get_files('./images')
-
 with open('data.txt', 'w') as file:
     for i in range(len(path)):
-        file.write(path[i] + '|')
-        for l in label[i]:
-            file.write(str(l)+' ')
+        file.write(path[i] + ' ')
+        for l in range(len(label[i]) - 1):
+            file.write(str(label[i][l])+' ')
+        file.write(str(label[i][-1]))
         file.write('\n')

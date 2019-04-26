@@ -8,6 +8,9 @@
 #ifndef MIN
 #define MIN(x, y) ((x)>(y)?(y):(x))
 #endif
+#ifndef MAX
+#define MAX(x, y) ((x)<(y)?(y):(x))
+#endif
 using namespace nn;
 using namespace std;
 
@@ -273,9 +276,11 @@ Image Image::ROI(Rect rect)
 {
 	Image image;
 	image.count = count;
-	*count += 1;
-	image.cols = MIN(rect.width + 1, cols);
-	image.rows = MIN(rect.height + 1, rows);
+	*count += 1; 
+	rect.y = MIN(MAX(rect.y, 0), rows - 1);
+	rect.x = MIN(MAX(rect.x, 0), cols - 1);
+	image.cols = MIN(MAX(rect.width, 0), cols - rect.x);
+	image.rows = MIN(MAX(rect.height, 0), rows - rect.y);
 	image.channels = channels;
 	image.step = cols;
 	image.data = data + rect.y*channels*step + rect.x*channels;
@@ -326,7 +331,12 @@ const Image nn::operator+(const uchar value, const Image &src)
 
 const Image nn::operator-(const uchar value, const Image & src)
 {
-	return src - value;
+	Image mark(Size3(src.rows, src.cols, src.channels));
+	for (int i = 0; i < src.rows; i++)
+		for (int j = 0; j < src.cols; j++)
+			for (int k = 0; k < src.channels; k++)
+				mark(i, j, k) = value - src(i, j, k);
+	return mark;
 }
 
 

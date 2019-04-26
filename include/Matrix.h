@@ -87,6 +87,9 @@ namespace nn {
 		@param col 矩阵列数
 		*/
 		Matrix(float *matrix, int row, int col, int channel = 1);
+		Matrix(int w, float *data);
+		Matrix(int w, int h, float *data);
+		Matrix(int w, int h, int c, float *data);
 		template<class Type>
 		Matrix(const std::vector<Type> &vec, X_Y_Z dirc)
 		{
@@ -109,6 +112,9 @@ namespace nn {
 			*this = mat;
 		}
 		~Matrix();
+		void create(int w);
+		void create(int h, int w);
+		void create(int h, int w, int c);
 		/**
 		@brief 返回矩阵指针
 		*/
@@ -134,15 +140,29 @@ namespace nn {
 		*/
 		int channels()const;
 		/**
-		@brief 返回矩阵大小(row*col*1)
+		@brief 返回矩阵大小(row*col*channel)
 		*/
-		int size()const;
+		size_t size()const;
 		/**
 		@brief 返回矩阵大小Size(row,col)
 		*/
 		Size mSize()const;
 		/**
-		@brief 返回矩阵大小(row*col*1)
+		@brief 保存矩阵
+		@param file 保存文件名
+		@param binary 选择文本还是二进制
+		binary = false 选择文本
+		binary = true 选择二进制
+		*/
+		void save(std::string file, bool binary=false)const;
+		/**
+		@brief 读取矩阵
+		@param file 读取文件名
+		只支持二进制读取
+		*/
+		void load(std::string file);
+		/**
+		@brief 返回矩阵大小(row*col*channel)
 		*/
 		int length()const;
 		/**
@@ -247,6 +267,12 @@ namespace nn {
 		*/
 		void mChannel(const Matrix &src, int channel);
 		/**
+		@brief mChannel 将src覆盖到第channel通道
+		@param src 矩阵
+		@param channel 通道数
+		*/
+		void mChannel(const Matrix &src, int row, int col);
+		/**
 		@brief 设置矩阵维度
 		不允许改变矩阵长度
 		*/
@@ -262,7 +288,7 @@ namespace nn {
 		@param row 矩阵行数
 		@param col 矩阵列数
 		*/
-		bool setSize(int row, int col);
+		bool setSize(int row, int col, int channel);
 		/**
 		@brief 拷贝矩阵src
 		@param src 拷贝矩阵
@@ -541,7 +567,7 @@ namespace nn {
 		@brief 重载运算符=
 		深拷贝
 		*/
-		void operator = (const Matrix &temp);
+		Matrix & operator = (const Matrix &temp);
 		/**
 		@brief 重载运算符==
 		判断矩阵是否相等
@@ -577,6 +603,19 @@ namespace nn {
 		*/
 		const Matrix operator () (const int index, X_Y_Z rc)const;
 		/**
+		@brief 返回矩阵对应索引的列或行
+		@param index 索引
+		@param rc 索引方式
+		*/
+		const Matrix operator () (const int v1, const int v2, X_Y_Z rc)const;
+		operator float *() {
+			return matrix;
+		}
+
+		operator const float *() const {
+			return matrix;
+		}
+		/**
 		@brief 返回矩阵对应通道索引
 		@param channel 通道索引
 		*/
@@ -586,7 +625,7 @@ namespace nn {
 	private:
 		int row;
 		int col;
-		int depth;
+		int channel;
 		bool square;
 		float *matrix;
 #ifdef LIGHT_MAT
@@ -615,15 +654,14 @@ namespace nn {
 	public:
 		explicit Mat_() {}
 		/**
-		@brief 生成row*col*channel的方阵,用0填充
+		@brief 生成row*col*channel的方阵
 		@param row 矩阵行数
 		@param col 矩阵列数
 		@param depth 矩阵通道数
 		*/
 		Mat_(int row, int col = 1, int channel = 1) : Mat(row, col, channel) {}
 		/**
-		@brief 生成size_[0]*size_[1]*size_[2]的方阵,用0填充
-		会释放Vec<int> size_的内存
+		@brief 生成size_[0]*size_[1]*size_[2]的方阵
 		@param size_ 矩阵尺寸
 		*/
 		Mat_(const Size3 &size_) : Mat(size_) {}

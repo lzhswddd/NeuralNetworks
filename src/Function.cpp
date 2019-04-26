@@ -3,11 +3,29 @@ using nn::Mat;
 
 const Mat nn::Softmax(const Mat &y)
 {
-	Mat y_ = y;
-	y_ -= Max(y_);
-	Mat y_exp = mExp(y_);
-	float y_sum = y_exp.Sum();
-	Mat out = y_exp / y_sum;
+	Mat out;
+	if (y.channels() != 1) {
+		out = zeros(y.size3());
+		for (int i = 0; i < y.rows(); ++i)
+		{
+			for (int j = 0; j < y.cols(); ++j)
+			{
+				Mat y_ = y(i, j, CHANNEL);
+				y_ -= Max(y_);
+				Mat y_exp = mExp(y_);
+				float y_sum = y_exp.Sum();
+				out.mChannel(y_exp / y_sum, i, j);
+			}
+		}
+	}
+	else
+	{
+		Mat y_ = y;
+		y_ -= Max(y_);
+		Mat y_exp = mExp(y_);
+		float y_sum = y_exp.Sum();
+		out = y_exp / y_sum;
+	}
 	return out;
 }
 
@@ -53,12 +71,14 @@ const Mat nn::ReLU(const Mat &x)
 
 const Mat nn::ELU(const Mat & x)
 {
-	Mat x1(x);
+	Mat x1(x.size3());
 	for (int i = 0; i < x.rows(); ++i)
 		for (int j = 0; j < x.cols(); ++j)
 			for (int z = 0; z < x.channels(); ++z)
 				if (x(i, j, z) <= 0)
 					x1(i, j, z) = ELU_alpha * (exp(x(i, j, z)) - 1);
+				else
+					x1(i, j, z) = x(i, j, z);
 	return x1;
 }
 
@@ -69,12 +89,14 @@ const Mat nn::SELU(const Mat & x)
 
 const Mat nn::LReLU(const Mat & x)
 {
-	Mat x1(x);
+	Mat x1(x.size3());
 	for (int i = 0; i < x.rows(); ++i)
 		for (int j = 0; j < x.cols(); ++j)
 			for (int z = 0; z < x.channels(); ++z)
 				if (x(i, j, z) < 0)
-					x1(i, j, z) *= LReLU_alpha;
+					x1(i, j, z) = x(i, j, z) * LReLU_alpha;
+				else
+					x1(i, j, z) = x(i, j, z);
 	return x1;
 }
 
@@ -91,7 +113,7 @@ const Mat nn::D_L1(const Mat & y, const Mat & y0)
 
 const Mat nn::D_L2(const Mat & y, const Mat & y0)
 {
-	return 2 * (y0 - y);
+	return 2 * (y - y0);
 }
 
 const Mat nn::D_Quadratic(const Mat &y, const Mat &y0)
@@ -128,6 +150,8 @@ const Mat nn::D_ReLU(const Mat &x)
 			for (int z = 0; z < x.channels(); ++z)
 				if (x(i, j, z) > 0)
 					x1(i, j, z) = 1;
+				else
+					x1(i, j, z) = 0;
 	return x1;
 }
 
@@ -141,6 +165,8 @@ const Mat nn::D_ELU(const Mat & x)
 					x1(i, j, z) = 1;
 				else if (x(i, j, z) < 0)
 					x1(i, j, z) = ELU_alpha * exp(x(i, j, z));
+				else
+					x1(i, j, z) = 0;
 			}
 	return x1;
 }
@@ -159,7 +185,9 @@ const Mat nn::D_LReLU(const Mat & x)
 				if (x(i, j, z) > 0)
 					x1(i, j, z) = 1;
 				else if (x(i, j) < 0)
-					x1(i, j, z) = LReLU_alpha;
+					x1(i, j, z) = LReLU_alpha; 
+				else
+					x1(i, j, z) = 0;
 			}
 	return x1;
 }
@@ -295,6 +323,9 @@ string nn::Func2String(ActivationFunc f)
 	}
 	else if (f == LReLU) {
 		fun_name = "LReLU";
+	}
+	else {
+		fun_name = "user custom";
 	}
 	return fun_name;
 }

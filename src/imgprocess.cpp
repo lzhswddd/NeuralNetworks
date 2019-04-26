@@ -17,7 +17,7 @@ const Mat nn::Image2Mat(const Image & src)
 	for (int i = 0; i < mat.rows(); ++i)
 		for (int j = 0; j < mat.cols(); ++j)
 			for (int z = 0; z < mat.channels(); ++z)
-				mat(i, j, 0) = (uchar)src(i, j, z);
+				mat(i, j, z) = (float)src(i, j, z);
 	return mat;
 }
 
@@ -105,9 +105,9 @@ void nn::resize(const Image & src, Image & dst, float xRatio, float yRatio, Redu
 	{
 	case nn::EqualIntervalSampling:
 		for (int i = 0; i < rows; i++) {
-			int row = static_cast<int>((i + 1) / xRatio + 0.5) - 1;
+			int row = static_cast<int>((i + 1) / yRatio + 0.5) - 1;
 			for (int j = 0; j < cols; j++) {
-				int col = static_cast<int>((j + 1) / yRatio + 0.5) - 1;
+				int col = static_cast<int>((j + 1) / xRatio + 0.5) - 1;
 				img(i, j) = src(row, col); //取得采样像素
 			}
 		}
@@ -118,15 +118,15 @@ void nn::resize(const Image & src, Image & dst, float xRatio, float yRatio, Redu
 		int lastCol = 0;
 
 		for (int i = 0; i < rows; i++) {
-			int row = static_cast<int>((i + 1) / xRatio + 0.5) - 1;
+			int row = static_cast<int>((i + 1) / yRatio + 0.5) - 1;
 			for (int j = 0; j < cols; j++) {
-				int col = static_cast<int>((j + 1) / yRatio + 0.5) - 1;
+				int col = static_cast<int>((j + 1) / xRatio + 0.5) - 1;
 				Vec<uchar> temp;
 				for (int idx = lastCol; idx <= col; idx++) {
 					for (int jdx = lastRow; jdx <= row; jdx++) {
-						temp[0] += src(idx, jdx)[0];
-						temp[1] += src(idx, jdx)[1];
-						temp[2] += src(idx, jdx)[2];
+						temp[0] += src(jdx, idx)[0];
+						temp[1] += src(jdx, idx)[1];
+						temp[2] += src(jdx, idx)[2];
 					}
 				}
 
@@ -145,7 +145,7 @@ void nn::resize(const Image & src, Image & dst, float xRatio, float yRatio, Redu
 	default:
 		break;
 	}
-	 dst = img;
+	dst = img;
 }
 
 void nn::resize(const Image & src, Image & dst, Size newSize, ReductionMothed mothed)

@@ -1,9 +1,10 @@
 #include <iostream>
+#include <fstream>
 #include <iomanip>
 #include "alignMalloc.h"
 #include "Function.h"
-#include "Matrix.h"
 #include "Mat.h"
+#include "Matrix.h"
 using namespace std;
 using namespace nn;
 
@@ -17,15 +18,13 @@ Matrix::Matrix(int row, int col)
 {
 	init();
 	check(row, col);
-	depth = 1;
+	channel = 1;
 	this->row = row;
 	this->col = col;
 #ifdef LIGHT_MAT
 	createCount();
 #endif
-	matrix = (float*)fastMalloc(row*col*depth * sizeof(float));
-	if (matrix != nullptr)
-		memset(matrix, 0, length() * sizeof(matrix[0]));
+	matrix = (float*)fastMalloc(row*col*channel * sizeof(float));
 	checkSquare();
 }
 Matrix::Matrix(int row, int col, int depth)
@@ -34,13 +33,12 @@ Matrix::Matrix(int row, int col, int depth)
 	check(row, col);
 	this->row = row;
 	this->col = col;
-	this->depth = depth;
+	this->channel = depth;
 #ifdef LIGHT_MAT
 	createCount();
 #endif
 	matrix = (float*)fastMalloc(row*col*depth * sizeof(float));
-	if (matrix != nullptr)
-		memset(matrix, 0, length() * sizeof(matrix[0]));
+	//memset(matrix, 0, row*col*channel * sizeof(float));
 	checkSquare();
 }
 Matrix::Matrix(Size size_)
@@ -49,13 +47,12 @@ Matrix::Matrix(Size size_)
 	check(size_.hei, size_.wid);
 	row = size_.hei;
 	col = size_.wid;
-	depth = 1;
+	channel = 1;
 #ifdef LIGHT_MAT
 	createCount();
 #endif
-	matrix = (float*)fastMalloc(row*col*depth * sizeof(float));
-	if (matrix != nullptr)
-		memset(matrix, 0, length() * sizeof(matrix[0]));
+	matrix = (float*)fastMalloc(row*col*channel * sizeof(float));
+	//memset(matrix, 0, row*col*channel * sizeof(float));
 	checkSquare();
 }
 Matrix::Matrix(Size3 size_)
@@ -64,13 +61,12 @@ Matrix::Matrix(Size3 size_)
 	check(size_.x, size_.y, size_.z);
 	row = size_.x;
 	col = size_.y;
-	depth = size_.z;
+	channel = size_.z;
 #ifdef LIGHT_MAT
 	createCount();
 #endif
-	matrix = (float*)fastMalloc(row*col*depth * sizeof(float));
-	if (matrix != nullptr)
-		memset(matrix, 0, length() * sizeof(matrix[0]));
+	matrix = (float*)fastMalloc(row*col*channel * sizeof(float));
+	//memset(matrix, 0, row*col*channel * sizeof(float));
 	checkSquare();
 }
 Matrix::Matrix(float *matrix, int n)
@@ -88,14 +84,14 @@ Matrix::Matrix(int *matrix, int row, int col, int channel)
 	init();
 	if (matrix != nullptr) {
 		check(row, col, channel);
-		depth = 1;
+		channel = 1;
 		this->row = row;
 		this->col = col;
-		this->depth = channel;
+		this->channel = channel;
 #ifdef LIGHT_MAT
 		createCount();
 #endif
-		this->matrix = (float*)fastMalloc(row*col*depth * sizeof(float));
+		this->matrix = (float*)fastMalloc(row*col*channel * sizeof(float));
 		if (this->matrix != nullptr)
 			for (int index = 0; index < length(); index++)
 				this->matrix[index] = (float)matrix[index];
@@ -107,18 +103,42 @@ Matrix::Matrix(float *matrix, int row, int col, int channel)
 	init();
 	if (matrix != nullptr) {
 		check(row, col);
-		depth = 1;
+		channel = 1;
 		this->row = row;
 		this->col = col;
-		this->depth = channel;
+		this->channel = channel;
 #ifdef LIGHT_MAT
 		createCount();
 #endif
-		this->matrix = (float*)fastMalloc(row*col*depth * sizeof(float));
+		this->matrix = (float*)fastMalloc(row*col*channel * sizeof(float));
 		if (this->matrix != nullptr)
-			memcpy(this->matrix, matrix, row*col*depth * sizeof(float));
+			memcpy(this->matrix, matrix, row*col*channel * sizeof(float));
 	}
 	checkSquare();
+}
+Matrix::Matrix(int w, float * data)
+{
+	init();
+	col = w;
+	row = 1;
+	channel = 1;
+	matrix = data;
+}
+Matrix::Matrix(int w, int h, float * data)
+{
+	init();
+	col = w;
+	row = h;
+	channel = 1;
+	matrix = data;
+}
+Matrix::Matrix(int w, int h, int c, float * data)
+{
+	init();
+	col = w;
+	row = h;
+	channel = c;
+	matrix = data;
 }
 Matrix::Matrix(const Matrix &src)
 {
@@ -144,16 +164,16 @@ Matrix::Matrix(Matrix a, Matrix b, X_Y_Z merge)
 		if (a.col == b.col) {
 			row = a.row + b.row;
 			col = a.col;
-			depth = a.depth;
+			channel = a.channel;
 #ifdef LIGHT_MAT
 			createCount();
 #endif
-			matrix = (float*)fastMalloc(row*col*depth * sizeof(float));
+			matrix = (float*)fastMalloc(row*col*channel * sizeof(float));
 			if (matrix != nullptr) {
 				memcpy(matrix, a.matrix,
-					a.row*a.col*a.depth * sizeof(float));
-				memcpy(matrix + (a.row*a.col*a.depth), b.matrix,
-					b.row*b.col*b.depth * sizeof(float));
+					a.row*a.col*a.channel * sizeof(float));
+				memcpy(matrix + (a.row*a.col*a.channel), b.matrix,
+					b.row*b.col*b.channel * sizeof(float));
 			}
 			else {
 				matrix = nullptr;
@@ -164,20 +184,20 @@ Matrix::Matrix(Matrix a, Matrix b, X_Y_Z merge)
 		if (a.row == b.row) {
 			row = a.row;
 			col = a.col + b.col;
-			depth = a.depth;
+			channel = a.channel;
 #ifdef LIGHT_MAT
 			createCount();
 #endif
-			matrix = (float*)fastMalloc(row*col*depth * sizeof(float));
+			matrix = (float*)fastMalloc(row*col*channel * sizeof(float));
 			float *temp = a.matrix;
 			if (matrix != nullptr)
 				for (int i = 0; i < row; i++) {
-					memcpy(matrix + i * col*depth,
-						a.matrix + i * a.col*depth,
-						a.col*depth * sizeof(float));
-					memcpy(matrix + i * col*depth + a.col*depth,
-						b.matrix + i * b.col*depth,
-						b.col*depth * sizeof(float));
+					memcpy(matrix + i * col*channel,
+						a.matrix + i * a.col*channel,
+						a.col*channel * sizeof(float));
+					memcpy(matrix + i * col*channel + a.col*channel,
+						b.matrix + i * b.col*channel,
+						b.col*channel * sizeof(float));
 				}
 			else {
 				matrix = nullptr;
@@ -193,27 +213,56 @@ Matrix::Matrix(MatCommaInitializer_ & m)
 }
 Matrix::~Matrix()
 {
-#ifdef LIGHT_MAT
-	if (recount != 0) {
-		if (*recount == 0) {
-			release();
-			delete recount;
-			recount = nullptr;
-		}
-		else {
-			*recount -= 1;
-		}
-	}
-#else
 	release();
-#endif
 	col = 0;
 	row = 0;
-	depth = 0;
+	channel = 0;
 	/*if (matrix != nullptr) {
 		fastFree(matrix);
 		matrix = nullptr;
 	}*/
+}
+
+void Matrix::create(int w)
+{
+	release();
+	check(w,1, 1);
+	row = 1;
+	col = w;
+	channel = 1;
+#ifdef LIGHT_MAT
+	createCount();
+#endif
+	matrix = (float*)fastMalloc(row*col*channel * sizeof(float));
+	checkSquare();
+}
+
+void Matrix::create(int h, int w)
+{
+	release();
+	check(h, w, 1);
+	row = h;
+	col = w;
+	channel = 1;
+#ifdef LIGHT_MAT
+	createCount();
+#endif
+	matrix = (float*)fastMalloc(row*col*channel * sizeof(float));
+	checkSquare();
+}
+
+void Matrix::create(int h, int w, int c)
+{
+	release();
+	check(h, w, c);
+	row = h;
+	col = w;
+	channel = c;
+#ifdef LIGHT_MAT
+	createCount();
+#endif
+	matrix = (float*)fastMalloc(row*col*channel * sizeof(float));
+	checkSquare();
 }
 
 float* Matrix::mat_()const
@@ -223,7 +272,7 @@ float* Matrix::mat_()const
 
 void Matrix::DimCheck()const
 {
-	if (depth != 1) {
+	if (channel != 1) {
 		cerr << errinfo[ERR_INFO_DIM] << endl;
 		throw errinfo[0];
 	}
@@ -239,12 +288,12 @@ void Matrix::copy(Matrix &src, int Row_Start, int Row_End, int Col_Start, int Co
 	int wid = Col_End - Col_Start + 1;
 	check(hei, wid);
 	if (src.matrix == nullptr) {
-		src = Mat(hei, wid, depth);
+		src = zeros(hei, wid, channel);
 	}
 	for (int y = Row_Start, j = 0; y <= Row_End; y++, j++)
 		for (int x = Col_Start, i = 0; x <= Col_End; x++, i++)
-			for (int z = 0; z < depth; z++)
-				src(y, x, z) = matrix[(i + j * wid)*depth + z];
+			for (int z = 0; z < channel; z++)
+				src(y, x, z) = matrix[(i + j * wid)*channel + z];
 }
 
 void Matrix::swap(Matrix &src)const
@@ -254,41 +303,55 @@ void Matrix::swap(Matrix &src)const
 
 void Matrix::addones(direction dire)
 {
-	Matrix temp(row, col + 1, depth);
+	Matrix temp(row, col + 1, channel);
 	for (int i = 0; i < row; i++) {
 		for (int j = 0; j < col + 1; j++) {
-			for (int z = 0; z < depth; z++) {
+			for (int z = 0; z < channel; z++) {
 				if (dire == LEFT) {
 					if (j == 0)
 						temp(i, j, z) = 1;
 					else
-						temp(i, j, z) = matrix[(j - 1 + i * col)*depth + z];
+						temp(i, j, z) = matrix[(j - 1 + i * col)*channel + z];
 				}
 				else if (dire == RIGHT) {
 					if (j == col)
 						temp(i, j, z) = 1;
 					else
-						temp(i, j, z) = matrix[(j - 1 + i * col)*depth + z];
+						temp(i, j, z) = matrix[(j - 1 + i * col)*channel + z];
 				}
 			}
 		}
 	}
 	*this = temp;
 }
-void Matrix::mChannel(const Matrix & src, int channel)
+void Matrix::mChannel(const Matrix & src, int channels)
 {
 	if (matrix == nullptr || src.matrix == nullptr) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw errinfo[0];
 	}
-	if (row != src.row || col != src.col || channel >= depth) {
+	if (row != src.row || col != src.col || channels >= channel) {
 		cerr << errinfo[ERR_INFO_SIZE] << endl;
 		throw errinfo[0];
 	}
 	for (int i = 0; i < row; ++i) {
 		for (int j = 0; j < col; ++j) {
-			matrix[(i*col + j)*depth + channel] = src(i, j);
+			matrix[(i*col + j)*channel + channels] = src(i, j);
 		}
+	}
+}
+void nn::Matrix::mChannel(const Matrix & src, int row, int col)
+{
+	if (matrix == nullptr || src.matrix == nullptr) {
+		cerr << errinfo[ERR_INFO_EMPTY] << endl;
+		throw errinfo[0];
+	}
+	if (this->row <= row || this->col <= col || src.channels() != channel) {
+		cerr << errinfo[ERR_INFO_SIZE] << endl;
+		throw errinfo[0];
+	}
+	for (int i = 0; i < channel; ++i) {
+		matrix[(row*col + col)*channel + i] = src(i);
 	}
 }
 void nn::Matrix::reshape(Size3 size)
@@ -304,34 +367,35 @@ void nn::Matrix::reshape(Size3 size)
 	else {
 		this->row = size.x;
 		this->col = size.y;
-		this->depth = size.z;
+		this->channel = size.z;
 	}
 }
-void Matrix::reshape(int row, int col, int channel)
+void Matrix::reshape(int row, int col, int channels)
 {
 	if (matrix == nullptr) {
 		fprintf(stderr, errinfo[ERR_INFO_EMPTY]);
 		throw errinfo[ERR_INFO_EMPTY];
 	}
-	if (length() != row * col*channel) {
+	if (length() != row * col*channels) {
 		fprintf(stderr, errinfo[ERR_INFO_UNLESS]);
 		throw errinfo[ERR_INFO_UNLESS];
 	}
 	else {
 		this->row = row;
 		this->col = col;
-		this->depth = channel;
+		this->channel = channels;
 	}
 }
-bool Matrix::setSize(int row, int col)
+bool Matrix::setSize(int row, int col, int channel)
 {
-	if (length() == 0 && row*col > 0) {
-		*this = Matrix(row, col, depth);
+	if (row*col*channel > 0) {
+		*this = Matrix(row, col, channel);
 		return true;
 	}
-	if (length() == row * col) {
+	if (length() == row * col * channel) {
 		this->row = row;
 		this->col = col;
+		this->channel = channel;
 		return true;
 	}
 	return false;
@@ -349,7 +413,6 @@ void Matrix::setNum(float number, int index_y, int index_x)
 void Matrix::setMat(float *mat, int hei, int wid)
 {
 	if ((row <= 0 || col <= 0)) return;
-	Matrix::~Matrix();
 	*this = Matrix(mat, hei, wid);
 	checkSquare();
 }
@@ -357,7 +420,7 @@ void Matrix::setvalue(const Matrix &src)
 {
 	row = src.row;
 	col = src.col;
-	depth = src.depth;
+	channel = src.channel;
 	square = src.square;
 	if (src.matrix != nullptr) {
 #ifdef LIGHT_MAT
@@ -378,9 +441,9 @@ void Matrix::setvalue(const Matrix &src)
 		else
 			recount = new int(0);
 #endif // LIGHT_MAT
-		matrix = (float*)fastMalloc(row*col*depth * sizeof(float));
+		matrix = (float*)fastMalloc(row*col*channel * sizeof(float));
 		if (matrix != nullptr)
-			memcpy(matrix, src.matrix, row*col*depth * sizeof(float));
+			memcpy(matrix, src.matrix, row*col*channel * sizeof(float));
 	}
 	else matrix = nullptr;
 }
@@ -450,7 +513,7 @@ void Matrix::setIden()
 }
 Size3 Matrix::size3() const
 {
-	return Size3(row, col, depth);
+	return Size3(row, col, channel);
 }
 int Matrix::rows()const
 {
@@ -462,19 +525,71 @@ int Matrix::cols()const
 }
 int Matrix::channels() const
 {
-	return depth;
+	return channel;
 }
-int Matrix::size()const
+size_t Matrix::size()const
 {
-	return length();
+	return (size_t)length();
 }
 Size Matrix::mSize()const
 {
 	return Size(row, col);
 }
+void Matrix::save(std::string file, bool binary) const
+{
+	if (binary) {
+		FILE *out = fopen(file.c_str(), "wb");
+		if (out) {
+			int param[3] = { row, col, channel };
+			fwrite(param, sizeof(int) * 3, 1, out);
+			fwrite(matrix, sizeof(float)*length(), 1, out);
+			fclose(out);
+		}
+	}
+	else {
+		ofstream out(file);
+		if (out.is_open()) {
+			out.setf(ios::scientific);
+			out.setf(ios::showpos);
+			out.setf(ios::left);
+			for (int i = 0; i < row; i++) {
+				out << "[ ";
+				for (int j = 0; j < col; j++) {
+					out << "[ ";
+					for (int k = 0; k < channel; k++) {
+						if (j == col - 1 && k == channel - 1)
+						{
+							out << setw(8) << setprecision(2) << setfill(' ') << matrix[(i*col + j)*channel + k] << " ]]";
+						}
+						else if (k == channel - 1)
+						{
+							out << setw(8) << setprecision(2) << setfill(' ') << matrix[(i*col + j)*channel + k] << " ]";
+						}
+						else {
+							out << setw(8) << setprecision(2) << setfill(' ') << matrix[(i*col + j)*channel + k] << ", ";
+						}
+					}
+				}
+				out << endl;
+			}
+			out.close();
+		}
+	}
+}
+void Matrix::load(std::string file)
+{
+	FILE *in = fopen(file.c_str(), "rb");
+	if (in) {
+		int param[3] = { 0 };
+		fread(param, sizeof(int) * 3, 1, in);
+		create(param[0], param[1], param[2]);
+		fread(matrix, sizeof(float)*length(), 1, in);
+		fclose(in);
+	}
+}
 int Matrix::length()const
 {
-	return row * col*depth;
+	return row * col * channel;
 }
 int Matrix::isEnable()const
 {
@@ -495,10 +610,26 @@ bool Matrix::Square()const
 }
 void Matrix::release()
 {
+#ifdef LIGHT_MAT
+	if (recount != 0) {
+		if (*recount == 0) {
+			if (matrix != nullptr) {
+				fastFree(matrix);
+				matrix = nullptr;
+			}
+			delete recount;
+			recount = nullptr;
+		}
+		else {
+			*recount -= 1;
+		}
+	}
+#else
 	if (matrix != nullptr) {
 		fastFree(matrix);
 		matrix = nullptr;
 	}
+#endif
 }
 float& Matrix::at(int index_y, int index_x)const
 {
@@ -618,13 +749,13 @@ void Matrix::show()const
 	cout.setf(ios::scientific);
 	cout.setf(ios::showpos);
 	cout.setf(ios::left);
-	for (int z = 0; z < depth; z++) {
+	for (int z = 0; z < channel; z++) {
 		for (int i = 0; i < row; i++) {
 			cout << "[ ";
 			for (int j = 0; j < col - 1; j++) {
-				cout << setw(8) << setprecision(2) << setfill(' ') << matrix[(i*col + j)*depth + z] << ", ";
+				cout << setw(8) << setprecision(2) << setfill(' ') << matrix[(i*col + j)*channel + z] << ", ";
 			}
-			cout << setw(8) << setprecision(2) << setfill(' ') << matrix[(i*col + col - 1)*depth + z];
+			cout << setw(8) << setprecision(2) << setfill(' ') << matrix[(i*col + col - 1)*channel + z];
 			cout << " ]";
 		}
 	}
@@ -647,7 +778,7 @@ const Matrix nn::Matrix::mPow(int num) const
 	if (square) {
 		return POW(*this, num);
 	}
-	else if (isEnable() == -1) {
+	else{
 		cerr << errinfo[ERR_INFO_POW] << endl;
 		throw errinfo[0];
 	}
@@ -686,8 +817,7 @@ const Matrix nn::Matrix::clone() const
 }
 const Matrix Matrix::Opp()const
 {
-	Matrix mat(this);
-	return mOpp(mat);
+	return mOpp(*this);
 }
 const Matrix Matrix::Adj()const
 {
@@ -696,8 +826,7 @@ const Matrix Matrix::Adj()const
 		throw errinfo[0];
 	}
 	if (square) {
-		Matrix mat(this);
-		return adj(mat);
+		return adj(*this);
 	}
 	else {
 		cerr << errinfo[ERR_INFO_ADJ] << endl;
@@ -722,13 +851,12 @@ const Matrix Matrix::Inv()const
 		return inv(*this);
 	}
 	else {
-		Matrix m(matrix, row, col);
 		try {
-			return pinv(m, RIGHT);
+			return pinv(*this, RIGHT);
 		}
 		catch (...) {
 			try {
-				return pinv(m, LEFT);
+				return pinv(*this, LEFT);
 			}
 			catch (...) {
 				cerr << errinfo[ERR_INFO_PINV] << endl;
@@ -896,7 +1024,7 @@ void Matrix::init()
 {
 	row = 0;
 	col = 0;
-	depth = 0;
+	channel = 0;
 	matrix = nullptr;
 #ifdef LIGHT_MAT
 	recount = 0;
@@ -961,11 +1089,11 @@ const Matrix Matrix::operator + (const float val)const
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw errinfo[0];
 	}
-	Matrix mark(row, col, depth);
+	Matrix mark(row, col, channel);
 	for (int i = 0; i < row; i++)
 		for (int j = 0; j < col; j++)
-			for (int z = 0; z < depth; z++)
-				mark((j + i * col)*depth + z) = matrix[(j + i * col)*depth + z] + val;
+			for (int z = 0; z < channel; z++)
+				mark((j + i * col)*channel + z) = matrix[(j + i * col)*channel + z] + val;
 	return mark;
 }
 const Matrix Matrix::operator + (const Matrix &a)const
@@ -974,36 +1102,36 @@ const Matrix Matrix::operator + (const Matrix &a)const
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw errinfo[0];
 	}
-	if (row == 1 && col == 1 && depth == 1) {
+	if (row == 1 && col == 1 && channel == 1) {
 		return (*this)(0) + a;
 	}
-	else if (a.row == 1 && a.col == 1 && a.depth == 1) {
+	else if (a.row == 1 && a.col == 1 && a.channel == 1) {
 		return *this + a(0);
 	}
-	else if (a.row == 1 && a.col == 1 && a.depth == depth) {
-		Matrix mat(row, col, depth);
+	else if (a.row == 1 && a.col == 1 && a.channel == channel) {
+		Matrix mat(row, col, channel);
 		for (int i = 0; i < row; i++)
 			for (int j = 0; j < col; j++)
-				for (int z = 0; z < depth; z++)
-					mat((j + i * col)*depth + z) = matrix[(j + i * col)*depth + z] + a(z);
+				for (int z = 0; z < channel; z++)
+					mat((j + i * col)*channel + z) = matrix[(j + i * col)*channel + z] + a(z);
 		return mat;
 	}
-	if (row != a.row || col != a.col || depth != a.depth) {
+	if (row != a.row || col != a.col || channel != a.channel) {
 		cerr << errinfo[ERR_INFO_SIZE] << endl;
 		throw errinfo[0];
 	}
-	Matrix mark(row, col, depth);
+	Matrix mark(row, col, channel);
 	for (int i = 0; i < row; i++)
 		for (int j = 0; j < col; j++)
-			for (int z = 0; z < depth; z++)
-				mark((j + i * col)*depth + z) = matrix[(j + i * col)*depth + z] + a((j + i * col)*depth + z);
+			for (int z = 0; z < channel; z++)
+				mark((j + i * col)*channel + z) = matrix[(j + i * col)*channel + z] + a((j + i * col)*channel + z);
 	return mark;
 }
 void Matrix::operator += (const float val)
 {
 	*this = *this + val;
 }
-void Matrix::operator+=(const Matrix & a)
+void Matrix::operator += (const Matrix & a)
 {
 	*this = *this + a;
 }
@@ -1013,11 +1141,11 @@ const Matrix Matrix::operator-(void) const
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw errinfo[0];
 	}
-	Matrix mark(this);
+	Matrix mark(row, col, channel);
 	for (int i = 0; i < row; i++)
 		for (int j = 0; j < col; j++)
-			for (int z = 0; z < depth; z++)
-				mark((j + i * col)*depth + z) = -mark((j + i * col)*depth + z);
+			for (int z = 0; z < channel; z++)
+				mark((j + i * col)*channel + z) = -matrix[(j + i * col)*channel + z];
 	return mark;
 }
 const Matrix Matrix::operator - (const float val)const
@@ -1026,11 +1154,11 @@ const Matrix Matrix::operator - (const float val)const
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw errinfo[0];
 	}
-	Matrix mark(row, col, depth);
+	Matrix mark(row, col, channel);
 	for (int i = 0; i < row; i++)
 		for (int j = 0; j < col; j++)
-			for (int z = 0; z < depth; z++)
-				mark((j + i * col)*depth + z) = matrix[(j + i * col)*depth + z] - val;
+			for (int z = 0; z < channel; z++)
+				mark((j + i * col)*channel + z) = matrix[(j + i * col)*channel + z] - val;
 	return mark;
 }
 const Matrix Matrix::operator - (const Matrix &a)const
@@ -1039,29 +1167,29 @@ const Matrix Matrix::operator - (const Matrix &a)const
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw errinfo[0];
 	}
-	if (row == 1 && col == 1 && depth == 1) {
+	if (row == 1 && col == 1 && channel == 1) {
 		return (*this)(0) - a;
 	}
-	else if (a.row == 1 && a.col == 1 && a.depth == 1) {
+	else if (a.row == 1 && a.col == 1 && a.channel == 1) {
 		return *this - a(0);
 	}
-	else if (a.row == 1 && a.col == 1 && a.depth == depth) {
-		Matrix mat(row, col, depth);
+	else if (a.row == 1 && a.col == 1 && a.channel == channel) {
+		Matrix mat(row, col, channel);
 		for (int i = 0; i < row; i++)
 			for (int j = 0; j < col; j++)
-				for (int z = 0; z < depth; z++)
-					mat((j + i * col)*depth + z) = matrix[(j + i * col)*depth + z] - a(z);
+				for (int z = 0; z < channel; z++)
+					mat((j + i * col)*channel + z) = matrix[(j + i * col)*channel + z] - a(z);
 		return mat;
 	}
-	if (row != a.row || col != a.col || depth != a.depth) {
+	if (row != a.row || col != a.col || channel != a.channel) {
 		cerr << errinfo[ERR_INFO_SIZE] << endl;
 		throw errinfo[0];
 	}
-	Matrix mark(row, col, depth);
+	Matrix mark(row, col, channel);
 	for (int i = 0; i < row; i++)
 		for (int j = 0; j < col; j++)
-			for (int z = 0; z < depth; z++)
-				mark((j + i * col)*depth + z) = matrix[(j + i * col)*depth + z] - a((j + i * col)*depth + z);
+			for (int z = 0; z < channel; z++)
+				mark((j + i * col)*channel + z) = matrix[(j + i * col)*channel + z] - a((j + i * col)*channel + z);
 	return mark;
 }
 void Matrix::operator-=(const float val)
@@ -1078,11 +1206,11 @@ const Matrix Matrix::operator * (const float val)const
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw errinfo[0];
 	}
-	Matrix mark(row, col, depth);
+	Matrix mark(row, col, channel);
 	for (int i = 0; i < row; i++)
 		for (int j = 0; j < col; j++)
-			for (int z = 0; z < depth; z++)
-				mark((j + i * col)*depth + z) = matrix[(j + i * col)*depth + z] * val;
+			for (int z = 0; z < channel; z++)
+				mark((j + i * col)*channel + z) = matrix[(j + i * col)*channel + z] * val;
 	return mark;
 }
 const Matrix Matrix::operator * (const Matrix &a)const
@@ -1091,28 +1219,28 @@ const Matrix Matrix::operator * (const Matrix &a)const
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw errinfo[0];
 	}
-	if (row == 1 && col == 1 && depth == 1) {
+	if (row == 1 && col == 1 && channel == 1) {
 		return (*this)(0) * a;
 	}
-	else if (a.row == 1 && a.col == 1 && a.depth == 1) {
+	else if (a.row == 1 && a.col == 1 && a.channel == 1) {
 		return *this * a(0);
 	}
 	if (col != a.row) {
 		cerr << errinfo[ERR_INFO_MULT] << endl;
 		throw errinfo[0];
 	}
-	if (depth != a.depth) {
+	if (channel != a.channel) {
 		cerr << errinfo[ERR_INFO_SIZE] << endl;
 		throw errinfo[0];
 	}
-	Matrix mark(row, a.col, depth);
-	for (int z = 0; z < depth; z++)
+	Matrix mark(row, a.col, channel);
+	for (int z = 0; z < channel; z++)
 		for (int i = 0; i < row; i++)
 			for (int j = 0; j < a.col; j++) {
 				float temp = 0;
 				for (int d = 0; d < col; d++)
-					temp = temp + matrix[(i*col + d)*depth + z] * a((j + d * a.col)*depth + z);
-				mark((j + i * a.col)*depth + z) = temp;
+					temp = temp + matrix[(i*col + d)*channel + z] * a((j + d * a.col)*channel + z);
+				mark((j + i * a.col)*channel + z) = temp;
 			}
 	return mark;
 }
@@ -1134,21 +1262,21 @@ const Matrix Matrix::operator / (const Matrix &a)const
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw errinfo[0];
 	}
-	if (row == 1 && col == 1 && depth == 1) {
+	if (row == 1 && col == 1 && channel == 1) {
 		return (*this)(0) / a;
 	}
-	else if (a.row == 1 && a.col == 1 && a.depth == 1) {
+	else if (a.row == 1 && a.col == 1 && a.channel == 1) {
 		return *this / a(0);
 	}
-	if (row != a.row || col != a.col || depth != a.depth) {
+	if (row != a.row || col != a.col || channel != a.channel) {
 		cerr << errinfo[ERR_INFO_SIZE] << endl;
 		throw errinfo[0];
 	}
-	Matrix mark(row, col, depth);
+	Matrix mark(row, col, channel);
 	for (int i = 0; i < row; i++)
 		for (int j = 0; j < col; j++)
-			for (int z = 0; z < depth; z++)
-				mark((j + i * col)*depth + z) = matrix[(j + i * col)*depth + z] / a((j + i * col)*depth + z);
+			for (int z = 0; z < channel; z++)
+				mark((j + i * col)*channel + z) = matrix[(j + i * col)*channel + z] / a((j + i * col)*channel + z);
 	return mark;
 }
 void Matrix::operator/=(const float val)
@@ -1159,29 +1287,23 @@ void Matrix::operator/=(const Matrix & a)
 {
 	*this = *this / a;
 }
-void Matrix::operator = (const Matrix &temp)
+Matrix& Matrix::operator = (const Matrix &temp)
 {
+	if (this == &temp)
+		return *this;
 #ifdef LIGHT_MAT
-	if (recount != nullptr) {
-		if (*recount != 0) {
-			*recount -= 1;
-		}
-		else {
-			delete recount;
-			recount = nullptr;
-			release();
-		}
-	}
+	release();
 	recount = temp.recount;
 	if (recount != nullptr)
 		*recount += 1;
 	row = temp.row;
 	col = temp.col;
-	depth = temp.depth;
+	channel = temp.channel;
 	matrix = temp.matrix;
 #else
 	setvalue(temp);
 #endif
+	return *this;
 }
 bool Matrix::operator == (const Matrix &a)const
 {
@@ -1191,10 +1313,10 @@ bool Matrix::operator == (const Matrix &a)const
 	if (row != a.row) {
 		return false;
 	}
-	if (depth != a.depth) {
+	if (channel != a.channel) {
 		return false;
 	}
-	if (memcmp(matrix, a.matrix, col*row*depth * sizeof(float)) == 0)
+	if (memcmp(matrix, a.matrix, col*row*channel * sizeof(float)) == 0)
 		return true;
 	return false;
 }
@@ -1232,11 +1354,11 @@ float& Matrix::operator()(const int row, const int col) const
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw errinfo[0];
 	}
-	return matrix[(row*this->col + col)*depth];
+	return matrix[(row*this->col + col)*channel];
 }
 float & Matrix::operator()(const int row, const int col, const int depth) const
 {
-	if (row > this->row - 1 || col > this->col - 1 || depth > this->depth - 1) {
+	if (row > this->row - 1 || col > this->col - 1 || depth > this->channel - 1) {
 		cerr << errinfo[ERR_INFO_MEMOUT] << endl;
 		throw errinfo[0];
 	}
@@ -1248,7 +1370,7 @@ float & Matrix::operator()(const int row, const int col, const int depth) const
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw errinfo[0];
 	}
-	return matrix[(row*this->col + col)*this->depth + depth];
+	return matrix[(row*this->col + col)*this->channel + depth];
 }
 const Matrix Matrix::operator()(const int index, X_Y_Z rc) const
 {
@@ -1273,12 +1395,88 @@ const Matrix Matrix::operator()(const int index, X_Y_Z rc) const
 			throw errinfo[0];
 		}
 		return Block(*this, 0, row - 1, index, index);
+	case CHANNEL:
+		if (index > channel - 1) {
+			cerr << errinfo[ERR_INFO_MEMOUT] << endl;
+			throw errinfo[0];
+		}
+		return mSplit(*this, index);
 	default:return Matrix();
 	}
+}
+const Matrix nn::Matrix::operator()(const int v1, const int v2, X_Y_Z rc) const
+{
+	if (v1 < 0 || v2 < 0 ) {
+		cerr << errinfo[ERR_INFO_VALUE] << endl;
+		throw errinfo[0];
+	}
+	if (!matrix) {
+		cerr << errinfo[ERR_INFO_EMPTY] << endl;
+		throw errinfo[0];
+	}
+	Matrix m;
+	switch (rc) {
+	case ROW:
+		if (v1 > col - 1 || v2 > channel - 1) {
+			cerr << errinfo[ERR_INFO_MEMOUT] << endl;
+			throw errinfo[0];
+		}
+		m.create(row, 1, 1);
+		for (int i = 0; i < row; i++)
+			m(i) = matrix[i*col*channel + v1 * channel + v2];
+		break;
+	case COL:
+		if (v1 > row - 1 || v2 > channel - 1) {
+			cerr << errinfo[ERR_INFO_MEMOUT] << endl;
+			throw errinfo[0];
+		}
+		m.create(1, col, 1);
+		for (int i = 0; i < col; i++)
+			m(i) = matrix[v1*col*channel + i * channel + v2];
+		break;
+	case CHANNEL:
+		if (v1 > row - 1 || v2 > col - 1) {
+			cerr << errinfo[ERR_INFO_MEMOUT] << endl;
+			throw errinfo[0];
+		}
+		m.create(1, 1, channel);
+		for (int i = 0; i < channel; i++)
+			m(i) = matrix[v1*col*channel + v2 * channel + i];
+		break;
+	default:break;
+	}
+	return m;
 }
 const Matrix Matrix::operator [] (const int channel)const
 {
 	return mSplit(*this, channel);
 }
 
+const Mat nn::operator + (const float value, const Mat &mat)
+{
+	return mat + value;
+}
 
+const Mat nn::operator - (const float value, const Mat &mat)
+{
+	return value + (-mat);
+}
+
+const Mat nn::operator * (const float value, const Mat &mat)
+{
+	return mat * value;
+}
+
+const Mat nn::operator / (const float value, const Mat &mat)
+{
+	return Divi(mat, value, LEFT);
+}
+
+ostream & nn::operator << (ostream &out, const Mat &ma)
+{
+	if (ma.matrix == nullptr)
+		cout << errinfo[ERR_INFO_EMPTY] << endl;
+	else
+		ma.show();
+	return out;
+}

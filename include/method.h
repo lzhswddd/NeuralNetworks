@@ -2,6 +2,11 @@
 #define __METHOD_H__
 
 #include "Layer.h"
+#include "Vriable.h"
+#include <fstream>
+#include <fstream>
+#include "json.hpp"
+using json = nlohmann::json;
 
 using nn::Mat;
 using nn::Size3;
@@ -43,8 +48,11 @@ namespace nn
 	const Mat FullConnection(const Mat & input, const Mat & layer, const Mat & bias);
 
 	NetNode<Layer> CreateNode(const Layer &data, NetNode<Layer>* parent);
+	void save_layer(const NetNode<Layer>* tree, json *j, FILE *data);
+	void save_param_layer(const NetNode<Layer>* tree, FILE *data);
+	void load_layer(NetNode<Layer>* tree, FILE *data);
 	int insert_layer(NetNode<Layer>* tree, string name, Layer &layer, bool sibling);
-	void update_layer(NetNode<Layer>* tree, vector<Mat> &mat, int idx);
+	void update_layer(NetNode<Layer>* tree, vector<Mat> &mat, int &idx);
 	void initialize_loss(NetNode<Layer>* tree, vector<NetNode<Layer>*> *loss);
 	void initialize_size(NetNode<Layer>* tree, vector<Size3> &input_size, int idx);
 	void initialize_channel(NetNode<Layer>* tree, vector<int> *input_channel, int idx);
@@ -52,6 +60,14 @@ namespace nn
 	void show_net(const NetNode<Layer>* tree, std::ostream &out);
 	void forward(const NetNode<Layer>* tree, vector<Mat> &output, int idx);
 	void forward_train(const NetNode<Layer>* tree, vector<vector<Mat>> &variable, vector<Mat> &output, int idx);
-	void back_train(const NetNode<Layer>* tree, vector<Mat> &dlayer, vector<vector<Mat>> &x, vector<Mat> &output, int idx);
+	void back_train(const NetNode<Layer>* tree, vector<Mat>& dlayer, vector<vector<Mat>>& x, vector<Mat>& output, int &number, int idx);
+	
+	void nms(std::vector<Bbox> &boundingBox_, const float overlap_threshold, string modelname = "Union");
+	void generateBbox(const Mat &score, const Mat &location, std::vector<Bbox> &boundingBox_, float scale, float threshold);
+	void refine(vector<Bbox> &vecBbox, const int &height, const int &width, bool square);
+	//Ëõ·Å
+	void resize(const Mat & src, Mat & dst, float xRatio, float yRatio, ReductionMothed mothed);
+	//Ëõ·Å
+	void resize(const Mat& src, Mat& dst, Size newSize, ReductionMothed mothed);
 }
 #endif // !__METHOD_H__

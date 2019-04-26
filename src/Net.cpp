@@ -1,5 +1,10 @@
 #include "Net.h"
 #include "method.h"
+#include "json.hpp"
+#include <fstream>
+using std::ofstream;
+using std::ifstream;
+using json = nlohmann::json;
 using namespace nn;
 
 
@@ -32,6 +37,125 @@ vector<Size3> nn::Net::initialize(Size3 input_size)
 void nn::Net::clear()
 {
 	netTree.child.clear();
+}
+
+void nn::Net::save(string net_name) const
+{
+	ofstream file(net_name + ".json");
+	FILE *data = fopen((net_name + ".param").c_str(), "wb");
+	if (file.is_open()&& data) {
+		json info;
+		save_layer(&netTree, &info, data);
+		file << info.dump(4) << std::endl;
+		file.close(); fclose(data);
+	}
+}
+
+void nn::Net::load(string net_name)
+{
+	ifstream file(net_name + ".json");
+	FILE *data = fopen((net_name + ".param").c_str(), "rb");
+	if (file.is_open() && data) {
+		json info;
+		NetNode<Layer> *newpos;
+		vector<NetNode<Layer> *> parent(1, &netTree);
+		file >> info;
+		for (size_t i = 0; i < info.size(); ++i)
+		{
+			Layer layer(info[i]["name"]);
+			layer.type = Layer::String2Type(info[i]["type"]);
+			layer.layer_index = info[i]["layer"];
+			layer.last = info[i]["last"];
+			switch (layer.type)
+			{
+			case nn::NONE:
+				break;
+			case nn::CONV2D:
+				layer.convInfo.anchor.x = info[i]["anchor"]["x"];
+				layer.convInfo.anchor.y = info[i]["anchor"]["y"];
+				layer.convInfo.channel = info[i]["channel"];
+				layer.convInfo.kern_size = info[i]["kernSize"];
+				layer.convInfo.is_copy_border = info[i]["is_copy_border"];
+				layer.convInfo.strides.hei = info[i]["strides"]["height"];
+				layer.convInfo.strides.wid = info[i]["strides"]["width"];
+				layer.convInfo.isact = info[i]["isact"];
+				if (layer.convInfo.isact)
+					SetFunc(info[i]["activate"], &layer.active.f, &layer.active.df);
+				break;
+			case nn::MAX_POOL:
+				layer.pInfo.strides = info[i]["strides"];
+				layer.pInfo.size.hei = info[i]["size"]["height"];
+				layer.pInfo.size.wid = info[i]["size"]["width"];
+				break;
+			case nn::AVERAGE_POOL:
+				layer.pInfo.strides = info[i]["strides"];
+				layer.pInfo.size.hei = info[i]["size"]["height"];
+				layer.pInfo.size.wid = info[i]["size"]["width"];
+				break;
+			case nn::FULLCONNECTION:
+				layer.fcInfo.isact = info[i]["isact"];
+				if (layer.fcInfo.isact)
+					SetFunc(info[i]["activate"], &layer.active.f, &layer.active.df);
+				layer.fcInfo.size = info["size"];
+				break;
+			case nn::ACTIVATION:
+				SetFunc(info[i]["activate"], &layer.active.f, &layer.active.df);
+				break;
+			case nn::RESHAPE:
+				layer.reshapeInfo.size.x = info[i]["size"]["x"];
+				layer.reshapeInfo.size.y = info[i]["size"]["y"];
+				layer.reshapeInfo.size.z = info[i]["size"]["z"];
+				break;
+			case nn::DROPOUT:
+				layer.dropoutInfo.dropout = info[i]["dropout"];
+				break;
+			case nn::LOSS:
+				SetFunc(info[i]["loss"], &layer.loss.f, &layer.loss.df);
+				layer.loss.ignore_active = info[i]["ignore_active"];
+				break;
+			default:
+				continue;
+			}
+			if (info[i]["matrix"]) {
+				int param[3]; int bias[3];
+				fread(param, sizeof(int) * 3, 1, data);
+				layer.param = zeros(param[0], param[1], param[2]);
+				fread(layer.param, sizeof(float)*layer.param.length(), 1, data);
+				fread(bias, sizeof(int) * 3, 1, data);
+				layer.bias = zeros(bias[0], bias[1], bias[2]);
+				fread(layer.bias, sizeof(float)*layer.bias.length(), 1, data);
+			}
+			if ((int)parent.size() == layer.layer_index) {
+				newpos->sibling.push_back(CreateNode(Layer(), newpos));
+				newpos->sibling[newpos->sibling.size() - 1].child.push_back(CreateNode(layer, &newpos->sibling[newpos->sibling.size() - 1]));
+				parent.push_back(&newpos->sibling[newpos->sibling.size() - 1]);
+			}
+			else {
+				parent[layer.layer_index]->child.push_back(CreateNode(layer, parent[layer.layer_index]));
+			}
+			newpos = &parent[layer.layer_index]->child[parent[layer.layer_index]->child.size() - 1];
+			std::cout << info[i].dump(4) << std::endl;
+		}
+		file.close(); fclose(data);
+	}
+}
+
+void nn::Net::save_param(string param) const
+{
+	FILE *data = fopen(param.c_str(), "wb");
+	if (data) {
+		save_param_layer(&netTree, data);
+		fclose(data);
+	}
+}
+
+void nn::Net::load_param(string param)
+{
+	FILE *data = fopen(param.c_str(), "rb");
+	if (data) {
+		load_layer(&netTree, data);
+		fclose(data);
+	}
 }
 
 vector<Mat> nn::Net::forward(const Mat & input) const
@@ -73,7 +197,7 @@ void nn::Net::add(Layer layerInfo, string layer_name, bool sibling)
 
 void nn::Net::addLoss(LossFunc loss_f, string layer_name)
 {
-	netTree.child.push_back(CreateNode(Loss(loss_f, layer_name), &netTree));
+	netTree.child.push_back(CreateNode(Loss(loss_f, 1, layer_name), &netTree));
 }
 
 void nn::Net::addActivation(ActivationFunc act_f, string layer_name)
@@ -121,7 +245,7 @@ const vector<Mat> nn::Net::operator()(const Mat & input) const
 	return forward(input);
 }
 
-std::ostream & nn::operator<<(std::ostream & out, const Net & net)
+std::ostream & nn::operator <<(std::ostream & out, const Net & net)
 {
 	show_net(&net.netTree, out);
 	return out;

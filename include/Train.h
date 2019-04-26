@@ -26,7 +26,7 @@ namespace nn {
 		@param d_layer 输出梯度矩阵
 		*/
 		void FutureJacobi(
-			const NetData &data,
+			const NetData *data,
 			vector<Mat> & d_layer, vector<float> & error) {}
 		/**
 		@brief FutureJacobi 雅可比矩阵
@@ -36,7 +36,7 @@ namespace nn {
 		@param d_layer 输出梯度矩阵
 		*/
 		void Jacobi(
-			const NetData &data,
+			const NetData *data,
 			vector<Mat> & d_layer, vector<float> & error);
 		/**
 		@brief TrainModel 单批次训练模型
@@ -45,7 +45,7 @@ namespace nn {
 		@param label 标签
 		@param error 损失函数输出
 		*/
-		void Fit(const NetData & data, vector<float> *error = nullptr);
+		void Fit(const NetData *data, vector<float> *error = nullptr);
 		/**
 		@brief TrainModel 多批次训练模型
 		return 返回正确率, -1异常
@@ -53,11 +53,14 @@ namespace nn {
 		@param label 标签
 		@param error 损失函数输出
 		*/
-		void Fit(const vector<NetData> &data, vector<float> *error = nullptr);
+		void Fit(TrainData::iterator data, vector<float> *error = nullptr);
 
+		void Fit(TrainData &trainData, int epoch_number, int show_epoch, bool once_show = false);
 		void Fit(TrainData &trainData, OptimizerInfo op_info, int epoch_number, int show_epoch, bool once_show = false);
+		void Fit(TrainData &trainData, Optimizer *op, int epoch_number, int show_epoch, bool once_show = false, bool op_init = false);
+		void Fit(Net *net, TrainData &trainData, Optimizer *op, int epoch_number, int show_epoch, bool once_show = false, bool op_init = false);
 		void Fit(Net *net, TrainData &trainData, OptimizerInfo op_info, int epoch_number, int show_epoch, bool once_show = false);
-
+		void initialize();
 	protected:
 		/**
 		@brief BackPropagation 反向传播
@@ -65,9 +68,9 @@ namespace nn {
 		@param output 输出
 		@param d_layer 输出梯度值
 		*/
-		void BackPropagation(const NetData &data, vector<Mat> & d_layer, vector<float> & error);
-		void JacobiMat(const vector<Mat> &label, vector<Mat> &d_layer, vector<vector<Mat>> &variable, vector<Mat> &output);
-		void initialize();
+		void BackPropagation(const NetData *data, vector<Mat> & d_layer, vector<float> & error);
+		void JacobiMat(const vector<Mat> *label, vector<Mat> &d_layer, vector<vector<Mat>> &variable, vector<Mat> &output);
+		
 	private:
 		Net *net;
 		Optimizer* op;

@@ -85,7 +85,7 @@ namespace nn
 		NetNode(const _Tp &data, NetNode<_Tp>* parent)
 			: data(data), child(), parent(parent), sibling()
 		{
-
+			
 		}
 		NetNode<_Tp>* operator [](int idx)const
 		{
@@ -169,8 +169,8 @@ namespace nn
 		LossInfo(LossFunc loss_f)
 		{
 			SetFunc(loss_f, &this->f, &this->df);
-			if(loss_f == CrossEntropy || SOFTMAXCROSSENTROPY)
-				ignore_acctive = true;
+			if(loss_f == CrossEntropy || loss_f == SoftmaxCrossEntropy)
+				ignore_active = true;
 		}
 		LossInfo(ReduceType loss_f)
 		{
@@ -187,11 +187,11 @@ namespace nn
 				break;
 			case nn::CROSSENTROPY:
 				SetFunc(CrossEntropy, &this->f, &this->df);
-				ignore_acctive = true;
+				ignore_active = true;
 				break;
 			case nn::SOFTMAXCROSSENTROPY:
 				SetFunc(SoftmaxCrossEntropy, &this->f, &this->df);
-				ignore_acctive = true;
+				ignore_active = true;
 				break;
 			default:
 				break;
@@ -204,11 +204,15 @@ namespace nn
 		}
 		LossFunc f;
 		LossFunc df;
-		bool ignore_acctive = false;
+		bool ignore_active = false;
+		float weight = 1.0f;
 	};
 	class NetData
 	{
 	public:
+		NetData() : input(), label() {}
+		NetData(Mat &input, vector<Mat> & label)
+			: input(input), label(label) {}
 		Mat input;
 		vector<Mat> label;
 	};
@@ -234,6 +238,21 @@ namespace nn
 		float beta1;
 		float beta2;
 	};
+
+	class Bbox {
+	public:
+		float score;
+		int x1;
+		int y1;
+		int x2;
+		int y2;
+		float area;
+		float ppoint[10];
+		float regreCoord[4];
+	};
+	inline bool cmpScore(Bbox lsh, Bbox rsh) {
+		return lsh.score < rsh.score;
+	}
 }
 
 #endif

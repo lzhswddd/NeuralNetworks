@@ -18,6 +18,10 @@ namespace nn
 		Net();
 		~Net();
 		void clear();
+		void save(string net_name)const;
+		void load(string net_name);
+		void save_param(string param)const;
+		void load_param(string param);
 		vector<int> initialize(int input_channel);
 		vector<Size3> initialize(Size3 input_size);
 		vector<Mat> forward(const Mat &input)const;
@@ -35,6 +39,7 @@ namespace nn
 		layer_name="" 为在尾部并联
 		*/
 		void add(Layer layerInfo, string layer_name, bool sibling = false);
+
 		void addLoss(LossFunc loss_f, string layer_name = "");
 		void addActivation(ActivationFunc act_f, string layer_name = "");
 		void addMaxPool(Size poolsize, int strides, string layer_name = "");

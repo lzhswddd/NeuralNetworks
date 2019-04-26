@@ -2,13 +2,14 @@
 #define __LAYER_H__
 
 #include "NetParam.h"
+#include <fstream>
 
 namespace nn
 {
 	class Layer
 	{
 	public:
-		explicit Layer(string name = "") : name(name), type(NONE), param(), bias(){}
+		explicit Layer(string name = "") : name(name), type(NONE), param(), bias(), layer_index(0){}
 		string name;
 		LayerType type;
 		PoolInfo pInfo;
@@ -18,16 +19,19 @@ namespace nn
 		ReShapeInfo reshapeInfo;
 		ActivationInfo active;
 		LossInfo loss;
+		int layer_index;
 		bool last = false;
 		Mat param;
 		Mat bias;
-
+		static string Type2String(LayerType type);
+		static LayerType String2Type(string str);
 		friend std::ostream & operator << (std::ostream &out, const Layer &layer);
 	};
+
 	Layer Reshape(Size3 size, string name = "");
-	Layer Loss(LossFunc loss_f, string name = "");
-	Layer Loss(ReduceType loss_f, string name = "");
-	Layer Loss(LossFunc f, LossFunc df, bool ignore_activate, string name = "");
+	Layer Loss(LossFunc loss_f, float weight = 1, string name = "");
+	Layer Loss(ReduceType loss_f, float weight = 1, string name = "");
+	Layer Loss(LossFunc f, LossFunc df, bool ignore_activate, float weight = 1, string name = "");
 	Layer Dropout(float dropout, string name = "");
 	Layer Activation(ActivationFunc acti, string name = "");
 	Layer Activation(ActivationType acti, string name = "");

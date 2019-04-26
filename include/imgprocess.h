@@ -2,6 +2,7 @@
 #define __IMGPROCESS_H__
 
 #include "Image.h"
+#include "Vriable.h"
 #include <vector>
 #include <string>
 
@@ -9,35 +10,6 @@
 
 namespace nn
 {
-	/**
-	EqualIntervalSampling 等间隔采样
-	LocalMean 局部均值
-	*/
-	enum ReductionMothed
-	{
-		EqualIntervalSampling = 0,
-		LocalMean
-	};
-	/**
-	EqualIntervalSampling 等间隔采样
-	LocalMean 局部均值
-	*/
-	enum RotateAngle
-	{
-		ROTATE_90_ANGLE = 0,
-		ROTATE_180_ANGLE,
-		ROTATE_270_ANGLE
-	};
-	class Color
-	{
-	public:
-		Color(uchar v) : r(v), g(v), b(v) {}
-		Color(uchar r, uchar g, uchar b) : r(r), g(g), b(b){}
-		uchar r;
-		uchar g;
-		uchar b;
-	};
-
 	//图像转矩阵
 	const Mat Image2Mat(const Image &src);
 	//矩阵转图像

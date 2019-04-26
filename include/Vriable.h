@@ -38,24 +38,24 @@ namespace nn
 		ERR_INFO_DIM,
 	};
 	static const char *errinfo[] = {
-		"error 0: 矩阵为空!",
-		"error 1: 矩阵不是方阵！",
-		"error 2: 矩阵不是方阵，不能设置伴随矩阵！",
-		"error 3: 矩阵不是方阵，不能设置逆矩阵！",
-		"error 4: 矩阵不是方阵，不能进行次幂运算！",
-		"error 5: 矩阵不是方阵，不能设置为单位矩阵！",
-		"error 6: 矩阵不收敛!",
-		"error 7: 矩阵没有实数特征值!",
-		"error 8: 矩阵维度为0！",
-		"error 9: 矩阵索引出界！",
-		"error 10: 矩阵索引无效！",
-		"error 11: 两个矩阵维度不一致！",
-		"error 12: 两个矩阵维度不满足乘法条件！",
-		"error 13: 矩阵维度不为1，不是向量！",
-		"error 14: 参数违法！",
-		"error 15: 计算逆矩阵失败！"
-		"error 16: 行列式为0！",
-		"error 17: 不支持三维操作！"
+		"error 0: 矩阵为空!\0",
+		"error 1: 矩阵不是方阵!\0",
+		"error 2: 矩阵不是方阵，不能设置伴随矩阵!\0",
+		"error 3: 矩阵不是方阵，不能设置逆矩阵!\0",
+		"error 4: 矩阵不是方阵，不能进行次幂运算!\0",
+		"error 5: 矩阵不是方阵，不能设置为单位矩阵!\0",
+		"error 6: 矩阵不收敛!\0",
+		"error 7: 矩阵没有实数特征值!\0",
+		"error 8: 矩阵维度为0!\0",
+		"error 9: 矩阵索引出界!\0",
+		"error 10: 矩阵索引无效!\0",
+		"error 11: 两个矩阵维度不一致!\0",
+		"error 12: 两个矩阵维度不满足乘法条件!\0",
+		"error 13: 矩阵维度不为1，不是向量!\0",
+		"error 14: 参数违法!\0",
+		"error 15: 计算逆矩阵失败!\0"
+		"error 16: 行列式为0!\0",
+		"error 17: 不支持三维操作!\0"
 	};
 	enum X_Y_Z {
 		ROW = 0,
@@ -65,6 +65,25 @@ namespace nn
 	enum direction {
 		LEFT = 0,
 		RIGHT
+	};
+	/**
+	EqualIntervalSampling 等间隔采样
+	LocalMean 局部均值
+	*/
+	enum ReductionMothed
+	{
+		EqualIntervalSampling = 0,
+		LocalMean
+	};
+	/**
+	EqualIntervalSampling 等间隔采样
+	LocalMean 局部均值
+	*/
+	enum RotateAngle
+	{
+		ROTATE_90_ANGLE = 0,
+		ROTATE_180_ANGLE,
+		ROTATE_270_ANGLE
 	};
 	class Rect
 	{
@@ -230,7 +249,15 @@ namespace nn
 	typedef Point3<uint> Point3Ui;
 	typedef Point3<float> Point3f;
 	typedef Point3<float> Point3d;
-	class Color;
+	class Color
+	{
+	public:
+		Color(uchar v) : r(v), g(v), b(v) {}
+		Color(uchar r, uchar g, uchar b) : r(r), g(g), b(b) {}
+		uchar r;
+		uchar g;
+		uchar b;
+	};
 	template<class Type>
 	class Vec
 	{

@@ -25,6 +25,8 @@ namespace nn {
 		@param size 优化矩阵尺寸
 		*/
 		virtual void init(vector<Size3>& size) = 0;
+		virtual void save(string file)const = 0;
+		virtual void load(string file) = 0;
 		/**
 		@brief 运行优化器迭代1次
 		@param x 网络输入
@@ -33,14 +35,28 @@ namespace nn {
 		@param size
 		@param size
 		*/
-		virtual void Run(vector<Mat> &dlayer, const NetData &x, vector<float> &error) = 0;
+		virtual void Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error) = 0;
 		void RegisterTrain(Train *train);
 		bool Enable(const Mat &x, const vector<Mat> &y)const;
 		void RegisterMethod(OptimizerMethod method);
-		OptimizerMethod Method()const;
+		OptimizerMethod OpMethod()const;
 		virtual void copyTo(Optimizer* op)const = 0;
 		virtual Mat Params()const = 0;
-		float Step() { return step; }
+		float& Step() { return step; }
+
+		static Optimizer* CreateOptimizer(Optimizer* op);
+		static Optimizer* CreateOptimizer(OptimizerInfo optimizer_info);
+		/**
+		@brief CreateOptimizer 创建优化器
+		返回优化器
+		@param opm 优化器类型
+		@param step 学习率
+		@param loss_f 损失函数
+		@param value 超参
+		*/
+		static Optimizer* CreateOptimizer(OptimizerMethod opm, float step = 1e-2f, const Mat &value = (Mat_(3, 1) << 0.9f, 0.999e-3f, 1e-7f));
+		static void SaveParam(FILE * file, const vector<Mat> *vec); 
+		static void LoadParam(FILE * file, vector<Mat> *vec);
 	protected:
 		//网络实体
 		Train * train;
@@ -60,7 +76,9 @@ namespace nn {
 		explicit Method();
 		Method(float step);
 		void init(vector<Size3>& size) {}
-		void Run(vector<Mat> &dlayer, const NetData &x, vector<float> &error);
+		void save(string file)const {}
+		void load(string file) {}
+		void Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error);
 		Optimizer* minimize()const;
 		void copyTo(Optimizer* op)const;
 		Mat Params()const;
@@ -80,7 +98,9 @@ namespace nn {
 		*/
 		explicit GradientDescentOptimizer(float step = 1e-2);
 		void init(vector<Size3>& size) {}
-		void Run(vector<Mat> &dlayer, const NetData &x, vector<float> &error);
+		void save(string file)const {}
+		void load(string file) {}
+		void Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error);
 		/**
 		@brief 配置模型函数，返回注册的优化器Optimizer
 		*/
@@ -106,7 +126,9 @@ namespace nn {
 		*/
 		explicit MomentumOptimizer(float step = 1e-2f);
 		void init(vector<Size3>& size);
-		void Run(vector<Mat> &dlayer, const NetData &x, vector<float> &error);
+		void save(string file)const;
+		void load(string file);
+		void Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error);
 		/**
 		@brief 配置模型函数，返回注册的优化器Optimizer
 		@param loss_ 损失函数
@@ -138,7 +160,9 @@ namespace nn {
 		*/
 		explicit NesterovMomentumOptimizer(float step = 1e-2);
 		void init(vector<Size3>& size);
-		void Run(vector<Mat> &dlayer, const NetData &x, vector<float> &error);
+		void save(string file)const;
+		void load(string file);
+		void Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error);
 		/**
 		@brief 配置模型函数，返回注册的优化器Optimizer
 		@param loss_ 损失函数
@@ -170,7 +194,9 @@ namespace nn {
 		*/
 		explicit AdagradOptimizer(float step = 1e-2f);
 		void init(vector<Size3>& size);
-		void Run(vector<Mat> &dlayer, const NetData &x, vector<float> &error);
+		void save(string file)const;
+		void load(string file);
+		void Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error);
 		/**
 		@brief 配置模型函数，返回注册的优化器Optimizer
 		@param loss_ 损失函数
@@ -203,7 +229,9 @@ namespace nn {
 		*/
 		explicit RMSPropOptimizer(float step = 1e-2f);
 		void init(vector<Size3>& size);
-		void Run(vector<Mat> &dlayer, const NetData &x, vector<float> &error);
+		void save(string file)const;
+		void load(string file);
+		void Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error);
 		/**
 		@brief 配置模型函数，返回注册的优化器Optimizer
 		@param loss_ 损失函数
@@ -239,7 +267,9 @@ namespace nn {
 		*/
 		explicit AdamOptimizer(float step = 1e-2f);
 		void init(vector<Size3>& size);
-		void Run(vector<Mat> &dlayer, const NetData &x, vector<float> &error);
+		void save(string file)const;
+		void load(string file);
+		void Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error);
 		/**
 		@brief 配置模型函数，返回注册的优化器Optimizer
 		@param loss_ 损失函数
@@ -277,7 +307,9 @@ namespace nn {
 		*/
 		explicit NesterovAdamOptimizer(float step = 1e-2f);
 		void init(vector<Size3>& size);
-		void Run(vector<Mat> &dlayer, const NetData &x, vector<float> &error);
+		void save(string file)const;
+		void load(string file);
+		void Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error);
 		/**
 		@brief 配置模型函数，返回注册的优化器Optimizer
 		@param loss_ 损失函数
@@ -296,18 +328,6 @@ namespace nn {
 		float beta2;
 	};
 	typedef Optimizer* OptimizerP;
-
-	Optimizer* CreateOptimizer(Optimizer* op);
-	Optimizer* CreateOptimizer(OptimizerInfo optimizer_info);
-	/**
-	@brief CreateOptimizer 创建优化器
-	返回优化器
-	@param opm 优化器类型
-	@param step 学习率
-	@param loss_f 损失函数
-	@param value 超参
-	*/
-	Optimizer* CreateOptimizer(OptimizerMethod opm, float step = 1e-2f, const Mat &value = (Mat_(3, 1) << 0.9f, 0.999e-3f, 1e-7f));
 
 }
 #endif //__OPTIMIZER_H__

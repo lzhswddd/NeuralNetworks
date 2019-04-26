@@ -7,31 +7,6 @@
 using namespace std;
 using namespace nn;
 
-const Mat nn::operator + (const float value, const Mat &mat)
-{
-	return mat + value;
-}
-const Mat nn::operator - (const float value, const Mat &mat)
-{
-	return value + (-mat);
-}
-const Mat nn::operator * (const float value, const Mat &mat)
-{
-	return mat * value;
-}
-const Mat nn::operator / (const float value, const Mat &mat)
-{
-	return Divi(mat, value, LEFT);
-}
-ostream & nn::operator << (ostream &out, const Mat &ma)
-{
-	if (ma.matrix == nullptr)
-		cout << "error: ¾ØÕóÎª¿Õ" << endl;
-	else
-		ma.show();
-	return out;
-}
-
 void nn::check(int row, int col, int depth)
 {
 	if (row <= 0 || col <= 0 || depth <= 0) {
@@ -47,19 +22,15 @@ void nn::Srandom()
 
 float nn::Max(const Mat &temp, bool isAbs)
 {
-	if (isAbs) {
-		Mat m = mAbs(temp);
-		return m.findmax();
-	}
+	if (isAbs) 
+		return mAbs(temp).findmax();
 	else
 		return temp.findmax();
 }
 float nn::Min(const Mat &temp, bool isAbs)
 {
-	if (isAbs) {
-		Mat m = mAbs(temp);
-		return m.findmin();
-	}
+	if (isAbs) 
+		return mAbs(temp).findmin();
 	else
 		return temp.findmin();
 }
@@ -115,7 +86,7 @@ float nn::det(const Mat &temp)
 	if (n == 1)
 		return temp(0);
 	else {
-		Mat a(temp);
+		Mat a = temp.clone();
 		for (int j = 0; j < n; j++)
 			for (int i = 0; i < n; i++) {
 				if (a(j + j * n) == 0) {
@@ -278,10 +249,9 @@ const Mat nn::mSplit(const Mat & src, int channel)
 		throw errinfo[0];
 	}
 	Mat mat(src.rows(), src.cols());
-	for (int i = 0; i <src.rows(); i++)
-		for (int j = 0; j < src.cols(); j++) {
+	for (int i = 0; i < src.rows(); i++)
+		for (int j = 0; j < src.cols(); j++) 
 			mat(i, j) = src(i, j, channel);
-		}
 	return mat;
 }
 void nn::mSplit(const Mat & src, Mat * dst)
@@ -320,23 +290,28 @@ const Mat nn::zeros(int row, int col)
 {
 	check(row, col);
 	Mat mat(row, col);
+	memset(mat, 0, sizeof(float)*mat.length());
 	return mat;
 }
 const Mat nn::zeros(int row, int col, int channel)
 {
 	check(row, col, channel);
 	Mat mat(row, col, channel);
+	memset(mat, 0, sizeof(float)*mat.length());
 	return mat;
 }
 const Mat nn::zeros(Size size)
 {
 	check(size.hei, size.wid);
 	Mat mat(size.hei, size.wid);
+	memset(mat, 0, sizeof(float)*mat.length());
 	return mat;
 }
 const Mat nn::zeros(Size3 size)
 {
-	return Mat(size);
+	Mat mat(size);
+	memset(mat, 0, sizeof(float)*mat.length());
+	return mat;
 }
 const Mat nn::value(float v, int row, int col, int channel)
 {
@@ -373,11 +348,11 @@ const Mat nn::reverse(const Mat &m)
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw errinfo[0];
 	}
-	Mat temp(m);
+	Mat temp = m.clone();
 	for (int ind = 0; ind < m.size() / 2; ind++) {
 		float val = temp(ind);
-		temp(ind) = temp(m.size() - 1 - ind);
-		temp(m.size() - 1 - ind) = val;
+		temp(ind) = temp((int)m.size() - 1 - ind);
+		temp((int)m.size() - 1 - ind) = val;
 	}
 	return temp;
 }
@@ -451,7 +426,7 @@ const Mat nn::copyMakeBorder(const Mat & src, int top, int bottom, int left, int
 				}
 			}
 		}
-		for (int i = top; i < src.rows(); i++) {
+		for (int i = 0; i < mat.rows(); i++) {
 			for (int j = 0; j < left; j++) {
 				for (int z = 0; z < mat.channels(); z++) {
 					mat(i, j, z) = value;
@@ -465,7 +440,7 @@ const Mat nn::copyMakeBorder(const Mat & src, int top, int bottom, int left, int
 				}
 			}
 		}
-		for (int i = top; i < src.rows(); i++) {
+		for (int i = 0; i < mat.rows(); i++) {
 			for (int j = left + src.cols(); j < mat.cols(); j++) {
 				for (int z = 0; z < mat.channels(); z++) {
 					mat(i, j, z) = value;
@@ -553,16 +528,18 @@ const Mat nn::copyMakeBorder(const Mat & src, int top, int bottom, int left, int
 	}
 	return mat;
 }
-const Mat nn::Block(const Mat&a, int Row_Start, int Row_End, int Col_Start, int Col_End)
+const Mat nn::Block(const Mat&a, int Row_Start, int Row_End, int Col_Start, int Col_End, int Chennel_Start, int Chennel_End)
 {
 	int hei = Row_End - Row_Start + 1;
 	int wid = Col_End - Col_Start + 1;
-	check(hei, wid);
-	Mat mark(hei, wid);
+	int depth = Chennel_End - Chennel_Start + 1;
+	check(hei, wid, depth);
+	Mat mark(hei, wid, depth);
 	int i = 0;
 	for (int y = Row_Start, j = 0; y <= Row_End; y++, j++)
 		for (int x = Col_Start, i = 0; x <= Col_End; x++, i++)
-			mark(i + j * wid) = a(y, x);
+			for (int z = Chennel_Start, k = 0; z <= Chennel_End; z++, k++)
+				mark(i, j, k) = a(y, x, z);
 	return mark;
 }
 const Mat nn::mRand(int low, int top, int n, bool isdouble)
@@ -595,19 +572,19 @@ const Mat nn::mRand(int low, int top, int row, int col, int channel, bool isdoub
 }
 const Mat nn::mcreate(int row, int col)
 {
-	return Mat(row, col);
+	return zeros(row, col);
 }
 const Mat nn::mcreate(int row, int col, int channel)
 {
-	return Mat(row, col, channel);
+	return zeros(row, col, channel);
 }
 const Mat nn::mcreate(Size size)
 {
-	return Mat(size);
+	return zeros(size);
 }
 const Mat nn::mcreate(Size3 size)
 {
-	return Mat(size);
+	return zeros(size);
 }
 const Mat nn::adj(const Mat &temp)
 {
@@ -637,25 +614,27 @@ const Mat nn::inv(const Mat &temp)
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw temp;
 	}
-	Mat *m = new Mat[temp.channels()];
+	if (temp.channels() != 0) {
+		cerr << errinfo[ERR_INFO_DIM] << endl;
+		throw temp;
+	}
+	Mat m;
 	for (int z = 0; z < temp.channels(); z++) {
-		m[z] = temp[z];
-		float answer = det(m[z]);
+		temp.swap(m);
+		float answer = det(m);
 		if (answer != 0 && answer == answer) {
-			m[z] = adj(m[z]);
-			int n = m[z].rows();
+			m = adj(m);
+			int n = m.rows();
 			for (int i = 0; i < n; i++)
 				for (int j = 0; j < n; j++)
-					m[z](i, j) = (1 / answer)*m[z](i, j);
+					m(i, j) = (1 / answer)*m(i, j);
 		}
 		else {
 			cerr << errinfo[ERR_INFO_DET] << endl;
 			throw temp;
 		}
 	}
-	Mat mat = mMerge(m, temp.channels());
-	delete[] m;
-	return mat;
+	return m;
 }
 const Mat nn::pinv(const Mat &temp, direction direc)
 {
@@ -696,7 +675,7 @@ const Mat nn::mAbs(const Mat &temp)
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw temp;
 	}
-	Mat m(temp);
+	Mat m(temp.size3());
 	for (int ind = 0; ind < temp.length(); ind++)
 		m(ind) = fabs(temp(ind));
 	return m;
@@ -708,7 +687,7 @@ const Mat nn::Rotate(float angle)
 	rotate_mat(0) = cos(angle);
 	rotate_mat(1) = -sin(angle);
 	rotate_mat(2) = sin(angle);
-	rotate_mat(3)= cos(angle);
+	rotate_mat(3) = cos(angle);
 	return rotate_mat;
 }
 const Mat nn::POW(const Mat &temp, int num)
@@ -722,7 +701,8 @@ const Mat nn::POW(const Mat &temp, int num)
 		throw temp;
 	}
 	else {
-		Mat m(temp);
+		Mat m;
+		temp.swap(m);
 		if (num > 0) {
 			for (int i = 1; i < num; i++)
 				m = m * temp;
@@ -730,6 +710,7 @@ const Mat nn::POW(const Mat &temp, int num)
 		}
 		else if (num < 0) {
 			Mat a(temp);
+			temp.swap(a);
 			m.setInv();
 			a.setInv();
 			for (int i = -1; i > num; i--)
@@ -746,7 +727,7 @@ const Mat nn::mPow(const Mat &temp, int num)
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw temp;
 	}
-	Mat m(temp);
+	Mat m(temp.size3());
 	for (int ind = 0; ind < temp.length(); ind++)
 		m(ind) = pow(temp(ind), num);
 	return m;
@@ -758,7 +739,7 @@ const Mat nn::mSum(const Mat &temp, X_Y_Z r_c)
 		throw temp;
 	}
 	if (r_c == COL) {
-		Mat m(temp.channels(), temp.cols());
+		Mat m = zeros(temp.channels(), temp.cols());
 		for (int z = 0; z < temp.channels(); z++)
 			for (int i = 0; i < temp.cols(); i++)
 				for (int j = 0; j < temp.rows(); j++)
@@ -766,7 +747,7 @@ const Mat nn::mSum(const Mat &temp, X_Y_Z r_c)
 		return m;
 	}
 	else if (r_c == ROW) {
-		Mat m(temp.rows(), temp.channels());
+		Mat m = zeros(temp.rows(), temp.channels());
 		for (int z = 0; z < temp.channels(); z++)
 			for (int i = 0; i < temp.rows(); i++)
 				for (int j = 0; j < temp.cols(); j++)
@@ -774,7 +755,7 @@ const Mat nn::mSum(const Mat &temp, X_Y_Z r_c)
 		return m;
 	}
 	else if (r_c == CHANNEL) {
-		Mat m(1, 1, temp.channels());
+		Mat m = zeros(1, 1, temp.channels());
 		for (int z = 0; z < temp.channels(); z++) {
 			float sum = 0;
 			for (int i = 0; i < temp.rows(); i++)
@@ -823,7 +804,7 @@ const Mat nn::mSqrt(const Mat &temp)
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw temp;
 	}
-	Mat m(temp);
+	Mat m(temp.size3());
 	for (int ind = 0; ind < temp.length(); ind++)
 		m(ind) = sqrt(temp(ind));
 	return m;
@@ -834,7 +815,7 @@ const Mat nn::mOpp(const Mat &temp)
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw temp;
 	}
-	Mat m(temp);
+	Mat m(temp.size3());
 	for (int ind = 0; ind < temp.length(); ind++)
 		m(ind) = -temp(ind);
 	return m;
@@ -931,10 +912,10 @@ const Mat nn::mMin(const Mat &a, const Mat &b)
 		mark(ind) = a(ind) < b(ind) ? a(ind) : b(ind);
 	return mark;
 }
-Size3 nn::mCalSize(const Mat & src, const Mat & kern, Point & anchor, Size strides, int & top, int & bottom, int & left, int & right)
+Size3 nn::mCalSize(Size3 src, Size3 kern, Point & anchor, Size strides, int & top, int & bottom, int & left, int & right)
 {
-	int kern_row = kern.rows();
-	int kern_col = kern.cols();
+	int kern_row = kern.x;
+	int kern_col = kern.y;
 	if (anchor == Point(-1, -1)) {
 		anchor.x = kern_row % 2 ? kern_row / 2 : kern_row / 2 - 1;
 		anchor.y = kern_col % 2 ? kern_col / 2 : kern_col / 2 - 1;
@@ -943,7 +924,7 @@ Size3 nn::mCalSize(const Mat & src, const Mat & kern, Point & anchor, Size strid
 	bottom = kern_row - anchor.x - 1;
 	left = anchor.y;
 	right = kern_col - anchor.y - 1;
-	return Size3((src.rows() - top - bottom) / strides.hei, (src.cols() - left - right) / strides.wid, kern.channels()/ src.channels());
+	return Size3((src.x - top - bottom) / strides.hei, (src.y - left - right) / strides.wid, kern.z/ src.z);
 }
 Size3 nn::mCalSize(Size3 src, Size3 kern, Point &anchor, Size strides)
 {
@@ -965,7 +946,8 @@ const Mat nn::mThreshold(const Mat & src, float boundary, float lower, float upp
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw errinfo[0];
 	}
-	Mat mark(src);
+	Mat mark;
+	src.swap(mark);
 	switch (boundary2upper)
 	{
 	case -1:
@@ -996,18 +978,17 @@ const Mat nn::Filter2D(const Mat & input, const Mat & kern, Point anchor, const 
 		fprintf(stderr, "kern must be 2D!");
 		throw Mat();
 	}
-	Mat src;
 	int kern_row = kern.rows();
 	int kern_col = kern.cols();
 	int left, right, top, bottom;
-	Size3 size = mCalSize(input, kern, anchor, strides, left, right, top, bottom);
-	Mat dst;
+	Size3 size = mCalSize(input.size3(), kern.size3(), anchor, strides, left, right, top, bottom);
+	Mat dst, src;
 	if (is_copy_border) {		
 		src = copyMakeBorder(input, top, bottom, left, right);
 		dst = zeros(input.rows() / strides.hei, input.cols() / strides.wid);
 	}
 	else {
-		input.swap(src);
+		src = input;
 		dst = zeros(size.x, size.y);
 	}
 	for (int row = top, x = 0; row < src.rows() - bottom; row += (int)strides.hei, x++)
@@ -1030,8 +1011,50 @@ const Mat nn::LeastSquare(const Mat & x, const Mat & y)
 
 const Mat nn::Reshape(const Mat & src, Size3 size)
 {
-	Mat dst = src.clone();
+	Mat dst;
+	src.swap(dst);
 	dst.reshape(size);
+	return dst;
+}
+
+const Mat nn::rotate(const Mat & src, RotateAngle dice)
+{
+	Mat dst;
+	switch (dice)
+	{
+	case nn::ROTATE_90_ANGLE:
+	{
+		Mat mat(src.cols(), src.rows(), src.channels());
+		for (int row = 0; row < src.rows(); ++row)
+			for (int col = 0; col < src.cols(); ++col)
+				for (int depth = 0; depth < src.channels(); ++depth)
+					mat(col, src.rows() - 1 - row, depth) = src(row, col, depth);
+		dst = mat;
+	}
+	break;
+	case nn::ROTATE_180_ANGLE:
+	{
+		Mat mat(src.rows(), src.cols(), src.channels());
+		for (int row = 0, y = src.rows() - 1; row < src.rows() && y >= 0; ++row, --y)
+			for (int col = 0, x = src.cols() - 1; col < src.cols() && x >= 0; ++col, --x)
+				for (int depth = 0; depth < src.channels(); ++depth)
+					mat(row, col, depth) = src(y, x, depth);
+		dst = mat;
+	}
+	break;
+	case nn::ROTATE_270_ANGLE:
+	{
+		Mat mat(src.cols(), src.rows(), src.channels());
+		for (int row = 0; row < src.rows(); ++row)
+			for (int col = 0; col < src.cols(); ++col)
+				for (int depth = 0; depth < src.channels(); ++depth)
+					mat(src.cols() - 1 - col, row, depth) = src(row, col, depth);
+		dst = mat;
+	}
+	break;
+	default:
+		break;
+	}
 	return dst;
 }
 

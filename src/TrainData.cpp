@@ -28,6 +28,7 @@ void nn::TrainData::load_train_data(string rootpath, string imglist, string imag
 	batch_number = (int)imgpath.size() / batch_size;
 	data.resize(batch_size);
 	range.resize(batch_number);
+	traindata.resize(batch_number * batch_size);
 	for (int i = 0; i < batch_number; ++i)
 		range[i] = i;
 }
@@ -40,14 +41,23 @@ nn::TrainData::~TrainData()
 void nn::TrainData::reset()
 {
 	if (batchdata.size() == range.size()) {
-		random_shuffle(batchdata.begin(), batchdata.end());
+		random_shuffle(traindata.begin(), traindata.end());
+		index = 0;
+		for (vector<const NetData*> &vec : batchdata)
+		{
+			for (const NetData* mat : vec)
+			{
+				mat = &traindata[index++];
+			}
+		}
 	}
 	index = 0;
 }
 
 void nn::TrainData::clear()
 {
-	vector<vector<NetData>>().swap(batchdata);
+	vector<vector<const NetData*>>().swap(batchdata);
+	vector<NetData>().swap(traindata);
 	vector<int>().swap(range);
 }
 
@@ -61,9 +71,9 @@ int nn::TrainData::len() const
 	return (int)range.size();
 }
 
-const vector<NetData>* nn::TrainData::batches()
+TrainData::iterator nn::TrainData::batches()
 {
-	vector<NetData>* batch;
+	vector<const NetData*>* batch;
 	if (batchdata.size() == batch_number) {
 		batch = &batchdata[index];
 	}
@@ -80,12 +90,20 @@ const vector<NetData>* nn::TrainData::batches()
 	return batch;
 }
 
-void nn::TrainData::load_all_data()
+TrainData::Databox nn::TrainData::all_batches() const
+{
+	return &batchdata;
+}
+
+void nn::TrainData::load_all_data(bool is_show)
 {
 	index = 0;
 	for (int &v : range) {
 		next();
 		index += 1;
+		if (is_show) {
+			printf("load batch %d, all batches %d\n", v + 1, batch_number);
+		}
 	}
 	vector<vector<Mat>>().swap(label);
 	vector<Mat>().swap(data);
@@ -101,14 +119,15 @@ void nn::TrainData::register_process(void(*image)(const Image&, Image&), void(*m
 
 void nn::TrainData::next()
 {
-	vector<NetData> netData(batch_size);
+	vector<const NetData*> netData(batch_size);
 	for (int i = 0; i < batch_size; ++i) {
 		Image img = Imread(imgpath[index*batch_size + i]);
 		if (process_image != nullptr)process_image(img, img);
 		Mat mat = Image2Mat(img);
 		if (process_mat != nullptr)process_mat(mat, mat);
-		netData[i].input = mat;
-		netData[i].label = label[index*batch_size + i];
+		traindata[index*batch_size + i].input = mat;
+		traindata[index*batch_size + i].label = label[index*batch_size + i];
+		netData[i] = &traindata[index*batch_size + i];
 	}
 	batchdata.push_back(netData);
 }

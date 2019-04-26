@@ -15,7 +15,6 @@ namespace nn
 	@brief 设置随机数种子
 	*/
 	void Srandom();
-
 	/**
 	@brief 返回矩阵的最大值
 	@param src 矩阵
@@ -121,7 +120,7 @@ namespace nn
 	@param Col_Start 截取列初始索引值
 	@param Col_End 截取列结束索引值
 	*/
-	const Mat Block(const Mat &src, int Row_Start, int Row_End, int Col_Start, int Col_End);
+	const Mat Block(const Mat &src, int Row_Start, int Row_End, int Col_Start, int Col_End, int Chennel_Start = 0, int Chennel_End = 0);
 	/**
 	@brief 返回随机生成元素n*n*1矩阵
 	@param n 矩阵大小
@@ -383,7 +382,7 @@ namespace nn
 	@param left 向左扩充几列
 	@param right 向右扩充几列
 	*/
-	Size3 mCalSize(const Mat &src, const Mat &kern, Point & anchor, Size strides, int &top, int &bottom, int &left, int &right);
+	Size3 mCalSize(Size3 src, Size3 kern, Point & anchor, Size strides, int &top, int &bottom, int &left, int &right);
 	/**
 	@brief mCalSize 计算卷积所需扩张的边界
 	返回矩阵大小
@@ -433,6 +432,7 @@ namespace nn
 	*/
 	const Mat LeastSquare(const Mat& x, const Mat &y);
 	const Mat Reshape(const Mat& src, Size3 size);
+	const Mat rotate(const Mat& src, RotateAngle dice);
 	/**
 	@brief 命令行按矩阵输出
 	@param row 行
