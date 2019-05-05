@@ -2,14 +2,30 @@
 #define __MATRIX_H__
 
 #include <vector>
-#include "Vriable.h"
+#include "vriable.h"
+#include "alignMalloc.h"
 
 //#define DEEPCOPY_MAT
 #ifndef DEEPCOPY_MAT
 #define LIGHT_MAT
 #endif // !DEEPCOPY_MAT
 
+#ifdef _DEBUG
+#define MAT_DEBUG
+#else
+#define MAT_RELEASE
+#endif
+
 namespace nn {
+	enum MatType
+	{
+		NN_CHAR = 0,
+		NN_UCHAR,
+		NN_INT,
+		NN_UINT,
+		NN_FLAOT,
+		NN_DOUBLE,
+	};
 	class MatCommaInitializer_;
 	class Matrix
 	{
@@ -54,7 +70,7 @@ namespace nn {
 		@param b 输入矩阵2
 		@param merge 合并方式
 		*/
-		Matrix(Matrix a, Matrix b, X_Y_Z merge);
+		Matrix(const Matrix &a, const Matrix &b, X_Y_Z merge);
 		/**
 		@brief 构造函数
 		深拷贝m
@@ -90,6 +106,7 @@ namespace nn {
 		Matrix(int w, float *data);
 		Matrix(int w, int h, float *data);
 		Matrix(int w, int h, int c, float *data);
+		Matrix(int w, int h, int c, int c_offset,  float *data);
 		template<class Type>
 		Matrix(const std::vector<Type> &vec, X_Y_Z dirc)
 		{
@@ -115,6 +132,8 @@ namespace nn {
 		void create(int w);
 		void create(int h, int w);
 		void create(int h, int w, int c);
+		void create(Size size);
+		void create(Size3 size);
 		/**
 		@brief 返回矩阵指针
 		*/
@@ -127,6 +146,10 @@ namespace nn {
 		@brief 返回矩阵尺寸(row,col,channel)
 		*/
 		Size3 size3()const;
+		/**
+		@brief 返回矩阵偏移
+		*/
+		int total()const;
 		/**
 		@brief 返回矩阵行数
 		*/
@@ -154,7 +177,7 @@ namespace nn {
 		binary = false 选择文本
 		binary = true 选择二进制
 		*/
-		void save(std::string file, bool binary=false)const;
+		void save(std::string file, bool binary=true)const;
 		/**
 		@brief 读取矩阵
 		@param file 读取文件名
@@ -180,6 +203,10 @@ namespace nn {
 		@brief 返回矩阵是否为方阵
 		*/
 		bool Square()const;
+		/**
+		@brief 拷贝
+		*/
+		void copyTo(const Matrix& mat)const;
 		/**
 		@brief 释放内存
 		*/
@@ -346,17 +373,27 @@ namespace nn {
 		void show()const;
 
 		/**
+		@brief 返回c通道矩阵
+		@param 通道索引
+		*/
+		Matrix Channel(int c);
+		/**
+		@brief 返回c通道矩阵
+		@param 通道索引
+		*/
+		const Matrix Channel(int c)const;
+		/**
 		@brief 返回深拷贝矩阵
 		*/
 		const Matrix clone()const;
 		/**
 		@brief 返回取反矩阵
 		*/
-		const Matrix Opp()const;
+		const Matrix opp()const;
 		/**
 		@brief 返回绝对值矩阵
 		*/
-		const Matrix Abs()const;
+		const Matrix abs()const;
 		/**
 		@brief 返回按num次幂矩阵
 		@param num 次幂
@@ -366,23 +403,23 @@ namespace nn {
 		@brief 返回按num次幂矩阵
 		@param num 次幂
 		*/
-		const Matrix Pow(int num)const;
+		const Matrix pow(float num)const;
 		/**
 		@brief 返回按元素取指数矩阵
 		*/
-		const Matrix Exp()const;
+		const Matrix exp()const;
 		/**
 		@brief 返回按元素取对数矩阵
 		*/
-		const Matrix Log()const;
+		const Matrix log()const;
 		/**
 		@brief 返回按元素取开方矩阵
 		*/
-		const Matrix Sqrt()const;
+		const Matrix sqrt()const;
 		/**
 		@brief 返回伴随矩阵
 		*/
-		const Matrix Adj()const;
+		const Matrix adj()const;
 		/**
 		@brief 返回转置矩阵
 		*/
@@ -390,12 +427,12 @@ namespace nn {
 		/**
 		@brief 返回逆矩阵
 		*/
-		const Matrix Inv()const;
+		const Matrix inv()const;
 		/**
 		@brief 返回逆序矩阵
 		矩阵必须是向量
 		*/
-		const Matrix Reverse()const;
+		const Matrix reverse()const;
 		const Matrix EigenvectorsMax(float offset = 1e-8)const;
 		/**
 		@brief sigmoid函数
@@ -457,7 +494,11 @@ namespace nn {
 		@param num 设置次幂
 		@param _abs 是否取绝对值
 		*/
-		float Sum(int num = 1, bool _abs = false)const;
+		float sum(int num = 1, bool _abs = false)const;
+		/**
+		@brief 返回平均值
+		*/
+		float mean()const;
 		/**
 		@brief 重载运算符+
 		对应元素相加
@@ -627,6 +668,7 @@ namespace nn {
 		int col;
 		int channel;
 		bool square;
+		int offset_c;
 		float *matrix;
 #ifdef LIGHT_MAT
 		int *recount;
@@ -636,8 +678,11 @@ namespace nn {
 		void createCount();
 #endif
 		void checkSquare();
-		void checkindex(int index)const;
-		void checkindex(int index_x, int index_y)const;
+#ifdef MAT_DEBUG
+		void checkindex(int index);
+		void checkindex(int index_x, int index_y);
+#endif // MAT_DEBUG
+		void setsize(int h, int w, int c);
 	};
 
 	typedef Matrix Mat;
@@ -701,10 +746,12 @@ namespace nn {
 	template<typename Tp_>
 	inline MatCommaInitializer_ MatCommaInitializer_::operator , (Tp_ v)
 	{
+#ifdef MAT_DEBUG
 		if (this->it == this->head + row * col*channel) {
 			fprintf(stderr, errinfo[ERR_INFO_MEMOUT]);
-			throw MatCommaInitializer_();
+			throw std::exception(errinfo[ERR_INFO_MEMOUT]);
 		}
+#endif
 		*this->it = float(v);
 		++this->it;
 		return *this;

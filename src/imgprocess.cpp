@@ -64,6 +64,16 @@ const Mat nn::mImread(const char * image_path, bool is_gray)
 	return Image2Mat(Imread(image_path, is_gray));
 }
 
+void nn::mImwrite(std::string image_path, const Mat & image)
+{
+	Imwrite(image_path.c_str(), Mat2Image(image));
+}
+
+void nn::mImwrite(const char * image_path, const Mat & image)
+{
+	Imwrite(image_path, Mat2Image(image));
+}
+
 void nn::Imwrite(std::string image_path, const Image & image)
 {
 	Imwrite(image_path.c_str(), image);
@@ -73,7 +83,7 @@ void nn::Imwrite(const char * image_path, const Image & image)
 {
 	if (!tje_encode_to_file(image_path, image.cols, image.rows, image.channels, true, image.data)) {
 		fprintf(stderr, "save %s fail.\n", image_path);
-		throw "save image fail";
+		throw std::exception("save image fail");
 	}
 }
 
@@ -150,7 +160,7 @@ void nn::resize(const Image & src, Image & dst, float xRatio, float yRatio, Redu
 
 void nn::resize(const Image & src, Image & dst, Size newSize, ReductionMothed mothed)
 {
-	resize(src, dst, newSize.wid / float(src.cols), newSize.hei / float(src.rows), mothed);
+	resize(src, dst, newSize.w / float(src.cols), newSize.h / float(src.rows), mothed);
 }
 
 void nn::rotate(const Image & src, Image & dst, RotateAngle dice)

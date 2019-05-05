@@ -1,29 +1,29 @@
-#include "Function.h"
+#include "function.h"
 using nn::Mat;
 
 const Mat nn::Softmax(const Mat &y)
 {
 	Mat out;
 	if (y.channels() != 1) {
-		out = zeros(y.size3());
+		out = y.clone();
 		for (int i = 0; i < y.rows(); ++i)
 		{
 			for (int j = 0; j < y.cols(); ++j)
 			{
-				Mat y_ = y(i, j, CHANNEL);
+				Mat y_ = out(i, j, CHANNEL);
 				y_ -= Max(y_);
 				Mat y_exp = mExp(y_);
-				float y_sum = y_exp.Sum();
-				out.mChannel(y_exp / y_sum, i, j);
+				float y_sum = y_exp.sum();
+				(y_exp / y_sum).copyTo(y_);
 			}
 		}
 	}
 	else
 	{
-		Mat y_ = y;
+		Mat y_ = y.clone();
 		y_ -= Max(y_);
 		Mat y_exp = mExp(y_);
-		float y_sum = y_exp.Sum();
+		float y_sum = y_exp.sum();
 		out = y_exp / y_sum;
 	}
 	return out;
@@ -31,12 +31,12 @@ const Mat nn::Softmax(const Mat &y)
 
 const Mat nn::L1(const Mat & y, const Mat & y0)
 {
-	return (y - y0).Abs();
+	return (y - y0).abs();
 }
 
 const Mat nn::L2(const Mat & y, const Mat & y0)
 {
-	return (y - y0).Pow(2);
+	return (y - y0).pow(2);
 }
 
 const Mat nn::Quadratic(const Mat &y, const Mat &y0)
@@ -72,13 +72,16 @@ const Mat nn::ReLU(const Mat &x)
 const Mat nn::ELU(const Mat & x)
 {
 	Mat x1(x.size3());
-	for (int i = 0; i < x.rows(); ++i)
-		for (int j = 0; j < x.cols(); ++j)
-			for (int z = 0; z < x.channels(); ++z)
-				if (x(i, j, z) <= 0)
-					x1(i, j, z) = ELU_alpha * (exp(x(i, j, z)) - 1);
-				else
-					x1(i, j, z) = x(i, j, z);
+	float *p = x1;
+	const float *mat = x;
+	for (int i = 0; i < x.length(); ++i) {
+		if (*mat <= 0)
+			*p = ELU_alpha * (exp(*mat) - 1);
+		else
+			*p = *mat;
+		p++;
+		mat++;
+	}
 	return x1;
 }
 
@@ -90,13 +93,16 @@ const Mat nn::SELU(const Mat & x)
 const Mat nn::LReLU(const Mat & x)
 {
 	Mat x1(x.size3());
-	for (int i = 0; i < x.rows(); ++i)
-		for (int j = 0; j < x.cols(); ++j)
-			for (int z = 0; z < x.channels(); ++z)
-				if (x(i, j, z) < 0)
-					x1(i, j, z) = x(i, j, z) * LReLU_alpha;
-				else
-					x1(i, j, z) = x(i, j, z);
+	float *p = x1;
+	const float *mat = x;
+	for (int i = 0; i < x.length(); ++i) {
+		if (*mat <= 0)
+			*p = *mat*LReLU_alpha;
+		else
+			*p = *mat;
+		p++;
+		mat++;
+	}
 	return x1;
 }
 
@@ -113,7 +119,7 @@ const Mat nn::D_L1(const Mat & y, const Mat & y0)
 
 const Mat nn::D_L2(const Mat & y, const Mat & y0)
 {
-	return 2 * (y - y0);
+	return 2 * (y0 - y);
 }
 
 const Mat nn::D_Quadratic(const Mat &y, const Mat &y0)
@@ -145,29 +151,34 @@ const Mat nn::D_Tanh(const Mat &x)
 const Mat nn::D_ReLU(const Mat &x)
 {
 	Mat x1(x.size3());
-	for (int i = 0; i < x.rows(); ++i)
-		for (int j = 0; j < x.cols(); ++j)
-			for (int z = 0; z < x.channels(); ++z)
-				if (x(i, j, z) > 0)
-					x1(i, j, z) = 1;
-				else
-					x1(i, j, z) = 0;
+	float *p = x1;
+	const float *mat = x;
+	for (int i = 0; i < x.length(); ++i) {
+		if (*mat > 0)
+			*p = 1;
+		else
+			*p = 0;
+		p++;
+		mat++;
+	}
 	return x1;
 }
 
 const Mat nn::D_ELU(const Mat & x)
 {
 	Mat x1(x.size3());
-	for (int i = 0; i < x.rows(); ++i)
-		for (int j = 0; j < x.cols(); ++j)
-			for (int z = 0; z < x.channels(); ++z) {
-				if (x(i, j, z) > 0)
-					x1(i, j, z) = 1;
-				else if (x(i, j, z) < 0)
-					x1(i, j, z) = ELU_alpha * exp(x(i, j, z));
-				else
-					x1(i, j, z) = 0;
-			}
+	float *p = x1;
+	const float *mat = x;
+	for (int i = 0; i < x.length(); ++i) {
+		if (*mat > 0)
+			*p = 1;
+		else if(*mat < 0)
+			*p = ELU_alpha * exp(*mat);
+		else
+			*p = 0;
+		p++;
+		mat++;
+	}
 	return x1;
 }
 
@@ -179,16 +190,18 @@ const Mat nn::D_SELU(const Mat & x)
 const Mat nn::D_LReLU(const Mat & x)
 {
 	Mat x1(x.size3());
-	for (int i = 0; i < x.rows(); ++i)
-		for (int j = 0; j < x.cols(); ++j)
-			for (int z = 0; z < x.channels(); ++z) {
-				if (x(i, j, z) > 0)
-					x1(i, j, z) = 1;
-				else if (x(i, j) < 0)
-					x1(i, j, z) = LReLU_alpha; 
-				else
-					x1(i, j, z) = 0;
-			}
+	float *p = x1;
+	const float *mat = x;
+	for (int i = 0; i < x.length(); ++i) {
+		if (*mat > 0)
+			*p = 1;
+		else if (*mat < 0)
+			*p = LReLU_alpha;
+		else
+			*p = 0;
+		p++;
+		mat++;
+	}
 	return x1;
 }
 

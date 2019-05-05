@@ -1,7 +1,7 @@
 #ifndef __MTCNN_H__
 #define __MTCNN_H__
 
-#include "Net.h"
+#include "net.h"
 #include "method.h"
 
 namespace nn {

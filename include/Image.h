@@ -1,8 +1,8 @@
 #ifndef __IMAGE_H__
 #define __IMAGE_H__
 
-#include "Vriable.h"
-#include "Mat.h"
+#include "vriable.h"
+#include "mat.h"
 #include <string>
 
 #define FOR_IMAGE(i, img, dire) for(int (i) = 0; (i) < ((dire) == 1?(img).rows:((dire) == 2 ? (img).cols : (img).channels)); ++i)

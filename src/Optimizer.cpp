@@ -1,4 +1,5 @@
-#include "Optimizer.h"
+#include "optimizer.h"
+#include "traindata.h"
 #include <iostream>
 #include <fstream>
 using namespace nn;
@@ -32,7 +33,7 @@ OptimizerMethod Optimizer::OpMethod() const
 */
 Method::Method() :Optimizer() {}
 Method::Method(float step) : Optimizer(step) {}
-void Method::Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error) {}
+void Method::Run(vector<Mat> &dlayer, TrainData::iterator x, vector<float> &error) {}
 Optimizer* Method::minimize()const
 {
 	Optimizer* train = new Method(*this);
@@ -51,7 +52,7 @@ Mat Method::Params() const
 =======================    GradientDescentÓÅ»¯Æ÷    =======================
 */
 GradientDescentOptimizer::GradientDescentOptimizer(float step) : Optimizer(step) {}
-void GradientDescentOptimizer::Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error)
+void GradientDescentOptimizer::Run(vector<Mat> &dlayer, TrainData::iterator x, vector<float> &error)
 {
 	/**
 	a = a - step * df(a, x)
@@ -110,7 +111,7 @@ void nn::MomentumOptimizer::load(string file)
 		fclose(in);
 	}
 }
-void MomentumOptimizer::Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error)
+void MomentumOptimizer::Run(vector<Mat> &dlayer, TrainData::iterator x, vector<float> &error)
 {
 	/**
 	ma = momentum*ma + step * df(a, x)
@@ -174,7 +175,7 @@ void nn::NesterovMomentumOptimizer::load(string file)
 		fclose(in);
 	}
 }
-void NesterovMomentumOptimizer::Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error)
+void NesterovMomentumOptimizer::Run(vector<Mat> &dlayer, TrainData::iterator x, vector<float> &error)
 {
 	/**
 	ma = momentum*ma + step * df(a - momentum*ma, x)
@@ -241,7 +242,7 @@ void nn::AdagradOptimizer::load(string file)
 		fclose(in);
 	}
 }
-void AdagradOptimizer::Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error)
+void AdagradOptimizer::Run(vector<Mat> &dlayer, TrainData::iterator x, vector<float> &error)
 {
 	/**
 	alpha = alpha + df(a, x)^2
@@ -306,7 +307,7 @@ void nn::RMSPropOptimizer::load(string file)
 		fclose(in);
 	}
 }
-void RMSPropOptimizer::Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error)
+void RMSPropOptimizer::Run(vector<Mat> &dlayer, TrainData::iterator x, vector<float> &error)
 {
 	/**
 	alpha = beta*alpha + (1 - beta)*df(a, x)^2
@@ -381,7 +382,7 @@ void nn::AdamOptimizer::load(string file)
 		fclose(in);
 	}
 }
-void AdamOptimizer::Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error)
+void AdamOptimizer::Run(vector<Mat> &dlayer, TrainData::iterator x, vector<float> &error)
 {
 	/**
 	ma = beta1*ma + (1 - beta1)*df(a, x)
@@ -394,8 +395,8 @@ void AdamOptimizer::Run(vector<Mat> &dlayer, const NetData *x, vector<float> &er
 		Mat d = dlayer[layer_num];
 		ma[layer_num] = beta1 * ma[layer_num] + (1 - beta1)*dlayer[layer_num];
 		alpha[layer_num] = beta2 * alpha[layer_num] + (1 - beta2)*mPow(dlayer[layer_num], 2);
-		//ma[layer_num] /= (1 - beta1);
-		//alpha[layer_num] /= (1 - beta2);
+		/*ma[layer_num] /= (1 - beta1);
+		alpha[layer_num] /= (1 - beta2);*/
 		dlayer[layer_num] = -Mult(step / mSqrt(alpha[layer_num] + epsilon), ma[layer_num]);
 	}
 }
@@ -463,7 +464,7 @@ void nn::NesterovAdamOptimizer::load(string file)
 		fclose(in);
 	}
 }
-void NesterovAdamOptimizer::Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error)
+void NesterovAdamOptimizer::Run(vector<Mat> &dlayer, TrainData::iterator x, vector<float> &error)
 {
 	/**
 	ma = beta1*ma + (1 - beta1)*df(a - step/sqrt(alpha + epsilon)*ma, x)

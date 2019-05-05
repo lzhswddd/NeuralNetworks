@@ -1,201 +1,181 @@
-#include "Layer.h"
+#include "layer.h"
+#include "convolution.h"
+#include "fullconnection.h"
+#include "batchnormalization.h"
+#include "pool.h"
+#include "activation.h"
+#include "costfunction.h"
+#include "dropout.h"
+#include "reshape.h"
+#include "prelu.h"
+
 #include <iostream>
 using namespace nn;
 
-Layer nn::Loss(LossFunc loss_f, float weight, string name)
+Layer * nn::CreateLayer(json & info, FILE* file)
 {
-	Layer info(name);
-	info.type = LOSS;
-	info.loss = LossInfo(loss_f);
-	info.loss.weight = weight;
-	return info;
-}
-
-Layer nn::Loss(ReduceType loss_f, float weight, string name)
-{
-	Layer info(name);
-	info.type = LOSS;
-	info.loss = LossInfo(loss_f);
-	info.loss.weight = weight;
-	return info;
-}
-
-Layer nn::Loss(LossFunc f, LossFunc df, bool ignore_activate, float weight, string name)
-{
-	Layer info(name);
-	info.type = LOSS;
-	info.loss.f = f;
-	info.loss.df = df;
-	info.loss.ignore_active = ignore_activate;
-	info.loss.weight = weight;
-	return info;
-}
-
-Layer nn::Dropout(float dropout, string name)
-{
-	Layer info(name);
-	info.type = DROPOUT;
-	info.dropoutInfo.dropout = dropout;
-	return info;
-}
-
-std::ostream & nn::operator<<(std::ostream & out, const Layer & layer)
-{
-	switch (layer.type)
+	Layer *layer = nullptr;
+	switch (Layer::String2Type(info["type"]))
 	{
-	case CONV2D:
-		out << layer.name << "{" << std::endl;
-		out << "Layer-> Conv2D" << std::endl;
-		out << "kern size-> " << layer.param.size3() << std::endl;
-		out << "bias size-> " << layer.bias.size3() << std::endl;
-		out << "strides-> " << layer.convInfo.strides << std::endl;
-		out << "anchor-> " << layer.convInfo.anchor << std::endl;
-		out << "is_copy_border-> " << (layer.convInfo.is_copy_border ? "true" : "false") << std::endl;
-		if (layer.convInfo.isact)
-			out << "activation-> " << Func2String(layer.active.f) << std::endl;
-		out << "}";
+	case nn::NONE:
+		layer = (Layer*)new Node(info["name"]);
 		break;
-	case MAX_POOL:
-		out << layer.name << "{" << std::endl;
-		out << "Layer-> MaxPool" << std::endl;
-		out << "size-> " << layer.pInfo.size << std::endl;
-		out << "strides-> " << layer.pInfo.strides << std::endl;
-		out << "}";
+	case nn::CONV2D:
+		layer = (Layer*)new convolution(info["name"]);
 		break;
-	case AVERAGE_POOL:
-		out << layer.name << "{" << std::endl;
-		out << "Layer-> AveragePool" << std::endl;
-		out << "size-> " << layer.pInfo.size << std::endl;
-		out << "strides-> " << layer.pInfo.strides << std::endl;
-		out << "}";
+	case nn::POOL:
+		layer = (Layer*)new pool(info["name"]);
 		break;
-	case FULLCONNECTION:
-		out << layer.name << "{" << std::endl;
-		out << "Layer-> FullConnection" << std::endl;
-		out << "param size-> " << layer.param.mSize() << std::endl;
-		out << "bias size-> " << layer.bias.mSize() << std::endl;
-		if (layer.fcInfo.isact)
-			out << "activation-> " << Func2String(layer.active.f) << std::endl;
-		out << "}";
+	case nn::FULLCONNECTION:
+		layer = (Layer*)new fullconnection(info["name"]);
 		break;
-	case ACTIVATION:
-		out << layer.name << "{" << std::endl;
-		out << "Layer-> Activation" << std::endl;
-		out << "activation-> " << Func2String(layer.active.f) << std::endl;
-		out << "}";
+	case nn::ACTIVATION:
+		layer = (Layer*)new activation(info["name"]);
 		break;
-	case RESHAPE:
+	case nn::RESHAPE:
+		layer = (Layer*)new reshape(info["name"]);
 		break;
-	case DROPOUT:
-		out << layer.name << "{" << std::endl;
-		out << "Layer-> Dropout" << std::endl;
-		out << "dropout-> " << layer.dropoutInfo.dropout << std::endl;
-		out << "}";
-	case LOSS:
-		out << layer.name << "{" << std::endl;
-		out << "Layer-> Loss" << std::endl;
-		out << "loss-> " << Func2String(layer.loss.f) << std::endl;
-		out << "ignore_active-> " << (layer.loss.ignore_active ? "true" : "false") << std::endl;
-		out << "}";
+	case nn::PRELU:
+		layer = (Layer*)new prelu(info["name"]);
+		break;
 	default:
 		break;
 	}
-	return out;
+	layer->load(info, file);
+	return layer;
 }
 
-Layer nn::Reshape(Size3 size, string name)
+Layer * nn::PReLU(string name)
 {
-	Layer info(name);
-	info.type = RESHAPE;
-	info.reshapeInfo.size = size;
-	return info;
+	prelu *info = new prelu(name);
+	return (Layer*)info;
 }
 
-Layer nn::Activation(ActivationFunc acti, string name)
+Layer * nn::BatchNorm(string name)
 {
-	Layer info(name);
-	info.type = ACTIVATION;
-	info.active = ActivationInfo(acti);
-	return info;
+	batchnormalization *info = new batchnormalization(name);
+	return (Layer*)info;
 }
 
-Layer nn::Activation(ActivationType acti, string name)
+Layer* nn::Loss(LossFunc loss_f, float weight, string name)
 {
-	Layer info(name);
-	info.type = ACTIVATION;
-	info.active = ActivationInfo(acti);
-	return info;
+	costfunction *info = new costfunction(name);
+	info->setfunction(loss_f);
+	info->weight = weight;
+	return (Layer*)info;
 }
 
-Layer nn::Activation(ActivationFunc f, ActivationFunc df, string name)
+Layer* nn::Loss(ReduceType loss_f, float weight, string name)
 {
-	Layer info(name);
-	info.type = ACTIVATION;
-	info.active.f = f;
-	info.active.df = df;
-	return info;
+	costfunction *info = new costfunction(name);
+	info->setfunction(loss_f);
+	info->weight = weight;
+	return (Layer*)info;
 }
 
-Layer nn::MaxPool(Size poolsize, int strides, string name)
+Layer* nn::Loss(LossFunc f, LossFunc df, bool ignore_activate, float weight, string name)
 {
-	Layer info(name);
-	info.type = MAX_POOL;
-	info.pInfo.size = poolsize;
-	info.pInfo.strides = strides;
-	return info;
+	costfunction *info = new costfunction(name);
+	info->f = f;
+	info->df = df;
+	info->ignore_active = ignore_activate;
+	info->weight = weight;
+	info->weight = weight;
+	return (Layer*)info;
 }
 
-Layer nn::AveragePool(Size poolsize, int strides, string name)
+Layer* nn::Dropout(float dropout_, string name)
 {
-	Layer info(name);
-	info.type = AVERAGE_POOL;
-	info.pInfo.size = poolsize;
-	info.pInfo.strides = strides;
-	return info;
+	dropout *info = new dropout(name);
+	info->dropout_probability = dropout_;
+	return (Layer*)info;
 }
 
-Layer nn::Dense(int layer_size, ActivationFunc act_f, string name)
+Layer* nn::Reshape(Size3 size, string name)
 {
-	Layer info(name);
-	info.type = FULLCONNECTION;
-	info.fcInfo.size = layer_size;
-	info.active = ActivationInfo(act_f);
-	info.fcInfo.isact = (act_f != nullptr);
-	return info;
+	reshape *info = new reshape(name);
+	info->size = size;
+	return (Layer*)info;
 }
 
-Layer nn::FullConnect(int layer_size, ActivationFunc act_f, string name)
+Layer* nn::Activation(ActivationFunc acti, string name)
 {
-	Layer info(name);
-	info.type = FULLCONNECTION;
-	info.fcInfo.size = layer_size;
-	info.active = ActivationInfo(act_f);
-	info.fcInfo.isact = (act_f != nullptr);
-	return info;
+	activation *info = new activation(name);
+	info->active = ActivationInfo(acti);
+	return (Layer*)info;
 }
 
-Layer nn::Conv2D(ConvInfo cinfo, ActivationFunc act_f, string name)
+Layer* nn::Activation(ActivationType acti, string name)
 {
-	Layer info(name);
-	info.type = CONV2D;
-	info.convInfo = cinfo;
-	info.active = ActivationInfo(act_f);
-	info.convInfo.isact = (act_f != nullptr);
-	return info;
+	activation *info = new activation(name);
+	info->active = ActivationInfo(acti);
+	return (Layer*)info;
 }
 
-Layer nn::Conv2D(int channel, int kern_size, bool is_copy_border, ActivationFunc act_f, string name, Size strides, Point anchor)
+Layer* nn::Activation(ActivationFunc f, ActivationFunc df, string name)
 {
-	Layer info(name);
-	info.type = CONV2D;
-	info.convInfo.channel = channel;
-	info.convInfo.kern_size = kern_size;
-	info.convInfo.is_copy_border = is_copy_border;
-	info.convInfo.strides = strides;
-	info.convInfo.anchor = anchor;
-	info.active = ActivationInfo(act_f);
-	info.convInfo.isact = (act_f != nullptr);
-	return info;
+	activation *info = new activation(name);
+	info->active.f = f;
+	info->active.df = df;
+	return (Layer*)info;
+}
+
+Layer* nn::MaxPool(Size poolsize, int strides, string name)
+{
+	pool *info = new pool(name);
+	info->pool_type = pool::max_pool;
+	info->ksize = poolsize;
+	info->strides = strides;
+	return (Layer*)info;
+}
+
+Layer* nn::AveragePool(Size poolsize, int strides, string name)
+{
+	pool *info = new pool(name);
+	info->pool_type = pool::average_pool;
+	info->ksize = poolsize;
+	info->strides = strides;
+	return (Layer*)info;
+}
+
+Layer* nn::Dense(int layer_size, ActivationFunc act_f, string name)
+{
+	return FullConnect(layer_size, act_f, name);
+}
+
+Layer* nn::FullConnect(int layer_size, ActivationFunc act_f, string name)
+{
+	fullconnection *info = new fullconnection(name);
+	info->size = layer_size;
+	info->active = ActivationInfo(act_f);
+	info->isact = (act_f != nullptr);
+	return (Layer*)info;
+}
+
+Layer* nn::Conv2D(ConvInfo cinfo, ActivationFunc act_f, string name)
+{
+	convolution *info = new convolution(name);
+	info->channel = cinfo.channel;
+	info->kern_size = cinfo.kern_size;
+	info->strides = cinfo.strides;
+	info->anchor = cinfo.anchor;
+	info->is_copy_border = cinfo.is_copy_border;
+	info->active = ActivationInfo(act_f);
+	info->isact = (act_f != nullptr);
+	return (Layer*)info;
+}
+
+Layer* nn::Conv2D(int channel, int kern_size, bool is_copy_border, ActivationFunc act_f, string name, Size strides, Point anchor)
+{
+	convolution *info = new convolution(name);
+	info->channel = channel;
+	info->kern_size = kern_size;
+	info->is_copy_border = is_copy_border;
+	info->strides = strides;
+	info->anchor = anchor;
+	info->active = ActivationInfo(act_f);
+	info->isact = (act_f != nullptr);
+	return (Layer*)info;
 }
 
 nn::ActivationInfo::ActivationInfo(ActivationType acti)
@@ -244,14 +224,13 @@ string nn::Layer::Type2String(LayerType type)
 	case nn::CONV2D:
 		type_name = "CONV2D";
 		break;
-	case nn::MAX_POOL:
-		type_name = "MAX_POOL";
+	case nn::POOL:
+		type_name = "POOL";
 		break;
-	case nn::AVERAGE_POOL:
-		type_name = "AVERAGE_POOL";
-		break;
+	case nn::BATCHNORMALIZATION:
+		type_name = "BATCH_NORMALIZATION";
 	case nn::FULLCONNECTION:
-		type_name = "FULLCONNECTION";
+		type_name = "FULL_CONNECTION";
 		break;
 	case nn::ACTIVATION:
 		type_name = "ACTIVATION";
@@ -261,6 +240,9 @@ string nn::Layer::Type2String(LayerType type)
 		break;
 	case nn::DROPOUT:
 		type_name = "DROPOUT";
+		break;
+	case nn::PRELU:
+		type_name = "PRELU";
 		break;
 	case nn::LOSS:
 		type_name = "LOSS";
@@ -275,12 +257,18 @@ LayerType nn::Layer::String2Type(string str)
 {
 	if (str == "NONE")return NONE;
 	else if (str == "CONV2D")return CONV2D;
-	else if (str == "MAX_POOL")return MAX_POOL;
-	else if (str == "AVERAGE_POOL")return AVERAGE_POOL;
+	else if (str == "POOL")return POOL;
 	else if (str == "FULLCONNECTION")return FULLCONNECTION;
 	else if (str == "ACTIVATION")return ACTIVATION;
 	else if (str == "RESHAPE")return RESHAPE;
 	else if (str == "DROPOUT")return DROPOUT;
+	else if (str == "PRELU")return PRELU;
 	else if (str == "LOSS")return LOSS;
 	else return NONE;
+}
+
+std::ostream & nn::operator<<(std::ostream & out, const Layer * layer)
+{
+	layer->show(out);
+	return out;
 }

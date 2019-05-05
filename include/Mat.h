@@ -1,7 +1,7 @@
 #ifndef __MAT_H__
 #define __MAT_H__
 
-#include "Matrix.h"
+#include "matrix.h"
 #ifndef DLength
 #define DLength(x) (sizeof(x)/sizeof(float))
 #endif
@@ -325,7 +325,7 @@ namespace nn
 	@param src 矩阵
 	@param num 次幂
 	*/
-	const Mat mPow(const Mat &src, int num);
+	const Mat mPow(const Mat &src, float num);
 	/**
 	@brief 返回矩阵val/src按元素除
 	@param src 矩阵
@@ -340,11 +340,17 @@ namespace nn
 	*/
 	const Mat Divi(const Mat &a, const Mat &b, direction dire = RIGHT);
 	/**
-	@brief 返回矩阵按元素对乘
+	@brief 返回哈达玛积
 	@param a 矩阵
 	@param b 矩阵
 	*/
 	const Mat Mult(const Mat &a, const Mat &b);
+	/**
+	@brief 返回矩阵乘法
+	@param a 矩阵
+	@param b 矩阵
+	*/
+	const Mat Dot(const Mat &a, const Mat &b);
 	/**
 	@brief 返回矩阵按元素取a和b之间的最大值
 	@param a 比较值
@@ -382,7 +388,7 @@ namespace nn
 	@param left 向左扩充几列
 	@param right 向右扩充几列
 	*/
-	Size3 mCalSize(Size3 src, Size3 kern, Point & anchor, Size strides, int &top, int &bottom, int &left, int &right);
+	Size3 mCalSize(Size3 src, Size3 kern, Point anchor, Size strides, int &top, int &bottom, int &left, int &right);
 	/**
 	@brief mCalSize 计算卷积所需扩张的边界
 	返回矩阵大小
@@ -391,6 +397,14 @@ namespace nn
 	@param anchor 像素对应卷积核坐标
 	*/
 	Size3 mCalSize(Size3 src, Size3 kern, Point &anchor, Size strides);
+	/**
+	@brief mCalSize 计算卷积所需扩张的边界
+	返回矩阵大小
+	@param src 被卷积矩阵尺寸
+	@param kern 卷积核尺寸
+	@param anchor 像素对应卷积核坐标
+	*/
+	Size3 mCalSize(Size3 src, Size kern, Point &anchor, Size strides);
 	/**
 	@brief 返回按boundary分界填充的矩阵
 	返回矩阵大小等于输入矩阵大小
@@ -425,6 +439,7 @@ namespace nn
 	@param is_copy_border 是否要扩展边界
 	*/
 	const Mat Filter2D(const Mat & input, const Mat & kern, Point anchor = Point(-1, -1), const Size & strides = Size(1, 1), bool is_copy_border = true);
+	void Filter2D(const Mat & in, Mat & out, const Mat & kern, Point anchor = Point(-1, -1), const Size & strides = Size(1, 1), bool is_copy_border = true);
 	/**
 	最小二乘法
 	@param x 自变量
@@ -432,6 +447,7 @@ namespace nn
 	*/
 	const Mat LeastSquare(const Mat& x, const Mat &y);
 	const Mat Reshape(const Mat& src, Size3 size);
+	const Mat SumChannel(const Mat& src);
 	const Mat rotate(const Mat& src, RotateAngle dice);
 	/**
 	@brief 命令行按矩阵输出

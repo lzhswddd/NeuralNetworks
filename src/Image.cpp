@@ -1,8 +1,8 @@
 #include <memory.h>
 #include <iostream>
 #include "alignMalloc.h"
-#include "Image.h"
-#include "Vriable.h"
+#include "image.h"
+#include "vriable.h"
 #include "imgprocess.h"
 
 #ifndef MIN
@@ -17,14 +17,14 @@ using namespace std;
 Image::Image() : data(nullptr), count(nullptr), rows(0), cols(0), channels(0) {}
 
 Image::Image(Size3 size)
-	: data((uchar*)fastMalloc(size.x*size.y*size.z * sizeof(uchar))), count(new int(0)), rows(size.x), cols(size.y), channels(size.z)
+	: data((uchar*)fastMalloc(size.h*size.w*size.c * sizeof(uchar))), count(new int(0)), rows(size.h), cols(size.w), channels(size.c)
 {
 	step = cols;
 	memset(data, 0, sizeof(uchar)*rows*cols*channels);
 }
 
 Image::Image(Size size, int channels)
-	: data((uchar*)fastMalloc(size.hei*size.wid*channels * sizeof(uchar))), count(new int(0)), rows(size.hei), cols(size.wid), channels(channels)
+	: data((uchar*)fastMalloc(size.h*size.w*channels * sizeof(uchar))), count(new int(0)), rows(size.h), cols(size.w), channels(channels)
 {
 	step = cols;
 	memset(data, 0, sizeof(uchar)*rows*cols*channels);
@@ -122,7 +122,7 @@ const Image Image::operator+(uchar value) const
 {
 	if (data == nullptr) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw Image();
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
 	Image mark;
 	copyTo(mark);
@@ -137,7 +137,7 @@ const Image Image::operator-(uchar value) const
 {
 	if (data == nullptr) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw Image();
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
 	Image mark;
 	copyTo(mark);
@@ -152,11 +152,11 @@ const Image Image::operator+(const Image & image) const
 {
 	if (data == nullptr) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw Image();
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
 	if (rows != image.rows || cols != image.cols || channels != image.channels) {
 		cerr << errinfo[ERR_INFO_SIZE] << endl;
-		throw Image();
+		throw std::exception(errinfo[ERR_INFO_SIZE]);
 	}
 	Image mark;
 	copyTo(mark);
@@ -171,11 +171,11 @@ const Image Image::operator-(const Image & image) const
 {
 	if (data == nullptr) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw Image();
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
 	if (rows != image.rows || cols != image.cols || channels != image.channels) {
 		cerr << errinfo[ERR_INFO_SIZE] << endl;
-		throw Image();
+		throw std::exception(errinfo[ERR_INFO_SIZE]);
 	}
 	Image mark;
 	copyTo(mark);

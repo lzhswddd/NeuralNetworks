@@ -2,8 +2,8 @@
 #define __TRAINDATA_H__
 
 #include <string>
-#include "Image.h"
-#include "NetParam.h"
+#include "image.h"
+#include "netparam.h"
 
 using std::vector;
 using std::string;

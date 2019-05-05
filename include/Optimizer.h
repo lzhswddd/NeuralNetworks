@@ -1,8 +1,8 @@
 #ifndef __OPTIMIZER_H__
 #define __OPTIMIZER_H__
 
-#include "NetParam.h"
-#include "Train.h"
+#include "netParam.h"
+#include "train.h"
 #include <vector>
 #include <string>
 using std::vector;
@@ -35,7 +35,7 @@ namespace nn {
 		@param size
 		@param size
 		*/
-		virtual void Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error) = 0;
+		virtual void Run(vector<Mat> &dlayer, TrainData::iterator x, vector<float> &error) = 0;
 		void RegisterTrain(Train *train);
 		bool Enable(const Mat &x, const vector<Mat> &y)const;
 		void RegisterMethod(OptimizerMethod method);
@@ -78,7 +78,7 @@ namespace nn {
 		void init(vector<Size3>& size) {}
 		void save(string file)const {}
 		void load(string file) {}
-		void Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error);
+		void Run(vector<Mat> &dlayer, TrainData::iterator x, vector<float> &error);
 		Optimizer* minimize()const;
 		void copyTo(Optimizer* op)const;
 		Mat Params()const;
@@ -100,7 +100,7 @@ namespace nn {
 		void init(vector<Size3>& size) {}
 		void save(string file)const {}
 		void load(string file) {}
-		void Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error);
+		void Run(vector<Mat> &dlayer, TrainData::iterator x, vector<float> &error);
 		/**
 		@brief 配置模型函数，返回注册的优化器Optimizer
 		*/
@@ -128,7 +128,7 @@ namespace nn {
 		void init(vector<Size3>& size);
 		void save(string file)const;
 		void load(string file);
-		void Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error);
+		void Run(vector<Mat> &dlayer, TrainData::iterator x, vector<float> &error);
 		/**
 		@brief 配置模型函数，返回注册的优化器Optimizer
 		@param loss_ 损失函数
@@ -162,7 +162,7 @@ namespace nn {
 		void init(vector<Size3>& size);
 		void save(string file)const;
 		void load(string file);
-		void Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error);
+		void Run(vector<Mat> &dlayer, TrainData::iterator x, vector<float> &error);
 		/**
 		@brief 配置模型函数，返回注册的优化器Optimizer
 		@param loss_ 损失函数
@@ -196,7 +196,7 @@ namespace nn {
 		void init(vector<Size3>& size);
 		void save(string file)const;
 		void load(string file);
-		void Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error);
+		void Run(vector<Mat> &dlayer, TrainData::iterator x, vector<float> &error);
 		/**
 		@brief 配置模型函数，返回注册的优化器Optimizer
 		@param loss_ 损失函数
@@ -231,7 +231,7 @@ namespace nn {
 		void init(vector<Size3>& size);
 		void save(string file)const;
 		void load(string file);
-		void Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error);
+		void Run(vector<Mat> &dlayer, TrainData::iterator x, vector<float> &error);
 		/**
 		@brief 配置模型函数，返回注册的优化器Optimizer
 		@param loss_ 损失函数
@@ -269,7 +269,7 @@ namespace nn {
 		void init(vector<Size3>& size);
 		void save(string file)const;
 		void load(string file);
-		void Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error);
+		void Run(vector<Mat> &dlayer, TrainData::iterator x, vector<float> &error);
 		/**
 		@brief 配置模型函数，返回注册的优化器Optimizer
 		@param loss_ 损失函数
@@ -309,7 +309,7 @@ namespace nn {
 		void init(vector<Size3>& size);
 		void save(string file)const;
 		void load(string file);
-		void Run(vector<Mat> &dlayer, const NetData *x, vector<float> &error);
+		void Run(vector<Mat> &dlayer, TrainData::iterator x, vector<float> &error);
 		/**
 		@brief 配置模型函数，返回注册的优化器Optimizer
 		@param loss_ 损失函数

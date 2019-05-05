@@ -1,6 +1,7 @@
-#include "Train.h"
+#include "train.h"
 #include "method.h"
-#include "Optimizer.h"
+#include "optimizer.h"
+#include "costfunction.h"
 #include <Windows.h>
 using namespace nn;
 
@@ -32,51 +33,25 @@ void nn::Train::RegisterOptimizer(Optimizer * optimizer)
 	op = optimizer;
 }
 
-void nn::Train::Fit(const NetData *data, vector<float>* error)
-{
-	if (op == nullptr || data == nullptr)return;
-	if (data->input.empty() || data->label.empty())return;
-	for (size_t layer_num = 0; layer_num < size.size(); ++layer_num) {
-		dlayer[layer_num] = zeros(size[layer_num]);
-	}
-	vector<float> err(loss.size());
-	BackPropagation(data, dlayer, err);
-	int idx = 0;
-	update_layer(net->NetTree(), dlayer, idx);
-	if (error)
-		err.swap(*error);
-}
-
 void nn::Train::Fit(TrainData::iterator data, vector<float> *error)
 {
 	if (op == nullptr)return;
 	if (data->empty())return;
+	if (!net->isEnable()) {
+		fprintf(stderr, "error: ÍøÂçÎ´³õÊ¼»¯!\n");
+		throw std::exception("error: ÍøÂçÎ´³õÊ¼»¯!");
+	}
 	for (size_t layer_num = 0; layer_num < size.size(); ++layer_num) {
 		dlayer[layer_num] = zeros(size[layer_num]);
 	}
 	vector<float> err(loss.size());
-	for (float &e : err)
-		e = 0;
-	vector<float> error_(err);
-	for (size_t idx = 0; idx < data->size(); idx++) {
-		vector<Mat> d_layer(dlayer.size());
-		BackPropagation((*data)[idx], d_layer, err);
-		for (size_t i = 0; i < err.size(); ++i)
-			error_[i] += err[i];
-		for (size_t layer_num = 0; layer_num < dlayer.size(); ++layer_num) {
-			dlayer[layer_num] += d_layer[layer_num];
-		}
-	}
-	for (float &e : error_)
-		e /= (float)data->size();
-	if (error != nullptr)
-		error_.swap(*error);
-	//if (mean_acc != 1) {
-	for (size_t layer_num = 0; layer_num < dlayer.size(); ++layer_num) {
-		dlayer[layer_num] /= (float)data->size();
-	}
+	for (float &v : err)
+		v = 0;
+	BackPropagation(data, dlayer, err);
 	int idx = 0;
-	update_layer(net->NetTree(), dlayer, idx);
+	method::update_layer(net->NetTree(), dlayer, idx);
+	if (error != nullptr)
+		err.swap(*error);
 	//}
 }
 
@@ -84,7 +59,9 @@ void nn::Train::Fit(TrainData & trainData, int epoch_number, int show_epoch, boo
 {
 	LARGE_INTEGER t1, t2, tc;
 	QueryPerformanceFrequency(&tc);
-	vector<float> error(loss.size());
+	vector<float> error(loss.size()); 
+	for (float &v : error)
+		v = 0;
 	for (int epoch = 0; epoch < epoch_number; ++epoch) {
 		QueryPerformanceCounter(&t1);
 		trainData.reset();
@@ -172,36 +149,41 @@ void nn::Train::Fit(Net * net, TrainData & trainData, OptimizerInfo op_info, int
 	Fit(trainData, op_info, epoch_number, show_epoch, once_show);
 }
 
-void nn::Train::BackPropagation(const NetData *data, vector<Mat>& d_layer, vector<float> & error)
+void nn::Train::BackPropagation(TrainData::iterator data, vector<Mat>& d_layer, vector<float> & error)
 {
 	if (op != 0)
 		op->Run(d_layer, data, error);
 }
 
-void nn::Train::Jacobi(const NetData *data, vector<Mat>& d_layer, vector<float> & error)
+void nn::Train::Jacobi(TrainData::iterator data, vector<Mat>& d_layer, vector<float> & error)
 {
-	vector<vector<Mat>> variable(1, vector<Mat>(1, data->input));
-	vector<Mat> transmit(1, data->input);
-	forward_train(net->NetTree(), variable, transmit, 0);
+	vector<Mat> variable(data->size());
+	vector<vector<Mat>> transmit(1, vector<Mat>(data->size()));
+	for (int idx = 0; idx < data->size(); ++idx) {
+		variable[idx] = data->at(idx)->input;
+		transmit[0][idx] = data->at(idx)->input;
+	}
+	method::forward_train(net->NetTree(), variable, transmit, 0);
 	if (loss.empty())
 	{
 		fprintf(stderr, "Ã»ÓÐ×¢²áËðÊ§º¯Êý!");
-		throw "Ã»ÓÐ×¢²áËðÊ§º¯Êý!";
+		throw std::exception("Ã»ÓÐ×¢²áËðÊ§º¯Êý!");
 	}
-	for (size_t i = 0; i < loss.size(); ++i)
-		error[i] = loss[i]->data.loss.f(data->label[i], transmit[i]).Norm();
-	JacobiMat(&data->label, d_layer, variable, transmit);
+	for (size_t i = 0; i < loss.size(); ++i) {
+		error[i] = ((const costfunction*)loss[i]->data)->forword(data, &transmit, i);
+	}
+	JacobiMat(data, d_layer, transmit);
 }
 
-void nn::Train::JacobiMat(const vector<Mat> *label, vector<Mat> &dlayer, vector<vector<Mat>> &variable, vector<Mat> &output)
+void nn::Train::JacobiMat(TrainData::iterator label, vector<Mat> &dlayer, vector<vector<Mat>> &output)
 {
 	int idx = 0;
-	int number = 0;
-	for (const NetNode<Layer> *lossNode : loss) {
-		output[idx] = lossNode->data.loss.weight * lossNode->data.loss.df((*label)[idx], output[idx]);
+	int number = 0; 
+	for (const NetNode<Layer*> *lossNode : loss) {
+		((const costfunction*)lossNode->data)->back(label, &output, idx);
 		idx += 1;
 	}
-	back_train(loss[0]->parent, dlayer, variable, output, number, 0);
+	method::back_train(loss[0]->parent, dlayer, output, number, 0);
 }
 
 void nn::Train::initialize()
@@ -209,8 +191,11 @@ void nn::Train::initialize()
 	if (net) {
 		loss.clear();
 		size.size();
-		initialize_loss(net->NetTree(), &loss);
-		initialize_mat(net->NetTree(), &size);
+		if (regularization) {
+			method::regularization(*net, lambda);
+		}
+		method::initialize_loss(net->NetTree(), &loss);
+		method::initialize_mat(net->NetTree(), &size);
 		dlayer.resize(size.size());
 		reverse(loss.begin(), loss.end());
 		op->RegisterTrain(this);

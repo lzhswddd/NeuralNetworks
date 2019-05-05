@@ -2,7 +2,7 @@
 #include <cmath>
 #include <time.h>
 #include <iomanip>
-#include "Mat.h"
+#include "mat.h"
 
 using namespace std;
 using namespace nn;
@@ -11,7 +11,7 @@ void nn::check(int row, int col, int depth)
 {
 	if (row <= 0 || col <= 0 || depth <= 0) {
 		cerr << errinfo[ERR_INFO_VALUE] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_VALUE]);
 	}
 }
 
@@ -36,14 +36,16 @@ float nn::Min(const Mat &temp, bool isAbs)
 }
 float nn::trace(const Mat &temp)
 {
+#ifdef MAT_DEBUG
 	if (temp.isEnable() == -1){
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
 	if(temp.isEnable() == -2) {
 		cerr << errinfo[ERR_INFO_SQUARE] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_SQUARE]);
 	}
+#endif //MAT_DEBUG
 	float sum = 0;
 	for (int index = 0; index < temp.rows(); index++) {
 		sum += temp((index + index * temp.cols())*temp.channels());
@@ -52,14 +54,16 @@ float nn::trace(const Mat &temp)
 }
 float nn::cof(const Mat &temp, int x, int y)
 {
+#ifdef MAT_DEBUG
 	if (temp.isEnable() == -1) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
 	if (x >= temp.cols() || y >= temp.rows()) {
 		cerr << errinfo[ERR_INFO_MEMOUT] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_MEMOUT]);
 	}
+#endif //MAT_DEBUG
 	temp.DimCheck();
 	Mat a(temp.rows() - 1, temp.cols() - 1);
 	int n = temp.rows();
@@ -73,15 +77,17 @@ float nn::cof(const Mat &temp, int x, int y)
 }
 float nn::det(const Mat &temp)
 {
+#ifdef MAT_DEBUG
 	if (temp.isEnable() == -1) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
 	temp.DimCheck();
 	if (temp.isEnable() == -2) {
 		cerr << errinfo[ERR_INFO_SQUARE] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_SQUARE]);
 	}
+#endif //MAT_DEBUG
 	int n = temp.rows();
 	if (n == 1)
 		return temp(0);
@@ -114,10 +120,12 @@ float nn::det(const Mat &temp)
 }
 float nn::getRandData(int min, int max, bool isdouble)
 {
+#ifdef MAT_DEBUG
 	if (min > max) {
 		cerr << errinfo[ERR_INFO_VALUE] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_VALUE]);
 	}
+#endif //MAT_DEBUG
 	if (isdouble) {
 		float m1 = (float)(rand() % 101) / 101;
 		min++;
@@ -133,29 +141,31 @@ float nn::getRandData(int min, int max, bool isdouble)
 
 float nn::mNorm(const Mat &temp, int num)
 {
+#ifdef MAT_DEBUG
 	if (temp.empty()) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
 	if (temp.cols() != 1 && temp.rows() != 1) {
 		cerr << errinfo[ERR_INFO_NORM] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_NORM]);
 	}
 	temp.DimCheck();
 	if (num < 0) {
 		cerr << errinfo[ERR_INFO_VALUE] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_VALUE]);
 	}
+#endif //MAT_DEBUG
 	if (num == 1)
-		return temp.Sum(1, true);
+		return temp.sum(1, true);
 	else if (num == 2)
-		return sqrt(temp.Sum(2, true));
+		return sqrt(temp.sum(2, true));
 	//else if (isinf(num) == 1)
 	//	return abs(matrix[find(findmax())]);
 	//else if (isinf(num) == -1)
 	//	return abs(matrix[find(findmin())]);
 	else
-		return pow(temp.Sum(num, true), 1 / float(num));
+		return pow(temp.sum(num, true), 1 / float(num));
 }
 float nn::mDistance(const Mat &a, const Mat &b, int num)
 {
@@ -235,19 +245,21 @@ const Mat nn::eye(int n)
 }
 const Mat nn::mSplit(const Mat & src, int channel)
 {
+#ifdef MAT_DEBUG
 	check(src.rows(), src.cols(), src.channels());
 	if (channel > src.channels() - 1) {
 		cerr << errinfo[ERR_INFO_MEMOUT] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_MEMOUT]);
 	}
 	if (channel < 0) {
 		cerr << errinfo[ERR_INFO_MEMOUT] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_MEMOUT]);
 	}
 	if (src.empty()) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
+#endif //MAT_DEBUG
 	Mat mat(src.rows(), src.cols());
 	for (int i = 0; i < src.rows(); i++)
 		for (int j = 0; j < src.cols(); j++) 
@@ -256,27 +268,31 @@ const Mat nn::mSplit(const Mat & src, int channel)
 }
 void nn::mSplit(const Mat & src, Mat * dst)
 {
+#ifdef MAT_DEBUG
 	if (src.empty()) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
+#endif //MAT_DEBUG
 	for (int channel = 0; channel < src.channels(); ++channel)
 		dst[channel] = src[channel];
 }
 const Mat nn::mMerge(const Mat * src, int channels)
 {
+#ifdef MAT_DEBUG
 	if (channels < 0) {
 		cerr << errinfo[ERR_INFO_MEMOUT] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_MEMOUT]);
 	}
 	if (src == nullptr) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
 	if (src[channels - 1].empty()) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
+#endif //MAT_DEBUG
 	Mat mat(src[0].rows(), src[0].cols(), channels);
 	for (int z = 0; z < channels; z++) {
 		for (int i = 0; i <src[z].rows(); i++)
@@ -302,8 +318,8 @@ const Mat nn::zeros(int row, int col, int channel)
 }
 const Mat nn::zeros(Size size)
 {
-	check(size.hei, size.wid);
-	Mat mat(size.hei, size.wid);
+	check(size.h, size.w);
+	Mat mat(size.h, size.w);
 	memset(mat, 0, sizeof(float)*mat.length());
 	return mat;
 }
@@ -331,23 +347,25 @@ const Mat nn::ones(int row, int col, int channel)
 }
 const Mat nn::ones(Size3 size)
 {
-	return value(1, size.x, size.y, size.z);
+	return value(1, size.h, size.w, size.c);
 }
 const Mat nn::ones(Size size)
 {
-	check(size.hei, size.wid);
-	return value(1, size.hei, size.wid);
+	check(size.h, size.w);
+	return value(1, size.h, size.w);
 }
 const Mat nn::reverse(const Mat &m)
 {
+#ifdef MAT_DEBUG
 	if (!(m.cols() == 1 || m.rows() == 1)) {
 		cerr << errinfo[ERR_INFO_MEMOUT] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_MEMOUT]);
 	}
 	if (m.empty()) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
+#endif //MAT_DEBUG
 	Mat temp = m.clone();
 	for (int ind = 0; ind < m.size() / 2; ind++) {
 		float val = temp(ind);
@@ -358,10 +376,12 @@ const Mat nn::reverse(const Mat &m)
 }
 const Mat nn::mRandSample(const Mat &src, int row, int col, int channel)
 {
+#ifdef MAT_DEBUG
 	if (src.empty()) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
+#endif //MAT_DEBUG
 	check(row, col, channel);
 	Mat dst(row, col, channel);
 	for (int ind = 0; ind < src.size(); ind++)
@@ -370,10 +390,12 @@ const Mat nn::mRandSample(const Mat &src, int row, int col, int channel)
 }
 const Mat nn::mRandSample(const Mat& m, X_Y_Z rc, int num)
 {
+#ifdef MAT_DEBUG
 	if (m.empty()) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
+#endif //MAT_DEBUG
 	Mat dst = m(rand() % m.rows(), rc);
 	for (int i = 1; i < num; i++) {
 		dst = Mat(dst, m(rand() % m.rows(), rc), rc);
@@ -382,10 +404,12 @@ const Mat nn::mRandSample(const Mat& m, X_Y_Z rc, int num)
 }
 const Mat nn::linspace(int low, int top, int len)
 {
+#ifdef MAT_DEBUG
 	if (low >= top) {
 		cerr << errinfo[ERR_INFO_VALUE] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
+#endif //MAT_DEBUG
 	check(len, len);
 	Mat mark(1, len);
 	mark(0)= (float)low;
@@ -396,10 +420,12 @@ const Mat nn::linspace(int low, int top, int len)
 }
 const Mat nn::linspace(float low, float top, int len)
 {
+#ifdef MAT_DEBUG
 	if (low >= top) {
 		cerr << errinfo[ERR_INFO_VALUE] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_VALUE]);
 	}
+#endif //MAT_DEBUG
 	check(len, len);
 	Mat mark(1, len);
 	float gap = (top - low) / (len - 1);
@@ -413,8 +439,8 @@ const Mat nn::linspace(float low, float top, int len)
 const Mat nn::copyMakeBorder(const Mat & src, int top, int bottom, int left, int right, BorderTypes borderType, float value)
 {
 	Size3 size = src.size3();
-	size.x += (top + bottom);
-	size.y += (left + right);
+	size.h += (top + bottom);
+	size.w += (left + right);
 	Mat mat(size);
 	switch (borderType)
 	{
@@ -539,7 +565,7 @@ const Mat nn::Block(const Mat&a, int Row_Start, int Row_End, int Col_Start, int 
 	for (int y = Row_Start, j = 0; y <= Row_End; y++, j++)
 		for (int x = Col_Start, i = 0; x <= Col_End; x++, i++)
 			for (int z = Chennel_Start, k = 0; z <= Chennel_End; z++, k++)
-				mark(i, j, k) = a(y, x, z);
+				mark(j, i, k) = a(y, x, z);
 	return mark;
 }
 const Mat nn::mRand(int low, int top, int n, bool isdouble)
@@ -548,11 +574,13 @@ const Mat nn::mRand(int low, int top, int n, bool isdouble)
 }
 const Mat nn::mRand(int low, int top, Size3 size, bool isdouble)
 {
-	check(size.x, size.y, size.z);
+#ifdef MAT_DEBUG
+	check(size.h, size.w, size.c);
 	if (low >= top) {
 		cerr << errinfo[ERR_INFO_VALUE] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_VALUE]);
 	}
+#endif //MAT_DEBUG
 	Mat m(size);
 	for (int index = 0; index < m.length(); index++)
 		m(index) = getRandData(low, top, isdouble);
@@ -560,11 +588,13 @@ const Mat nn::mRand(int low, int top, Size3 size, bool isdouble)
 }
 const Mat nn::mRand(int low, int top, int row, int col, int channel, bool isdouble)
 {
+#ifdef MAT_DEBUG
 	check(row, col, channel);
 	if (low >= top) {
 		cerr << errinfo[ERR_INFO_VALUE] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_VALUE]);
 	}
+#endif //MAT_DEBUG
 	Mat m(row, col, channel);
 	for (int index = 0; index < m.length(); index++)
 		m(index) = getRandData(low, top, isdouble);
@@ -588,6 +618,7 @@ const Mat nn::mcreate(Size3 size)
 }
 const Mat nn::adj(const Mat &temp)
 {
+#ifdef MAT_DEBUG
 	if (temp.empty()) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw temp;
@@ -596,6 +627,7 @@ const Mat nn::adj(const Mat &temp)
 		cerr << errinfo[ERR_INFO_SQUARE] << endl;
 		throw temp;
 	}
+#endif //MAT_DEBUG
 	int n = temp.rows();
 	int depth = temp.channels();
 	Mat a(n, n, depth);
@@ -610,6 +642,7 @@ const Mat nn::adj(const Mat &temp)
 }
 const Mat nn::inv(const Mat &temp)
 {
+#ifdef MAT_DEBUG
 	if (temp.empty()) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw temp;
@@ -618,6 +651,7 @@ const Mat nn::inv(const Mat &temp)
 		cerr << errinfo[ERR_INFO_DIM] << endl;
 		throw temp;
 	}
+#endif //MAT_DEBUG
 	Mat m;
 	for (int z = 0; z < temp.channels(); z++) {
 		temp.swap(m);
@@ -638,13 +672,15 @@ const Mat nn::inv(const Mat &temp)
 }
 const Mat nn::pinv(const Mat &temp, direction direc)
 {
+#ifdef MAT_DEBUG
 	if (temp.empty()) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw temp;
 	}
+#endif //MAT_DEBUG
 	switch (direc)
 	{
-	case LEFT:return (temp.t()*temp).Inv()*temp.t();
+	case LEFT:return (temp.t()*temp).inv()*temp.t();
 	case RIGHT: {
 		Mat m = temp.t();
 		return nn::pinv(m, LEFT).t();
@@ -656,10 +692,12 @@ const Mat nn::pinv(const Mat &temp, direction direc)
 }
 const Mat nn::tran(const Mat &temp)
 {
+#ifdef MAT_DEBUG
 	if (temp.empty()) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw temp;
 	}
+#endif //MAT_DEBUG
 	Mat a(temp.cols(), temp.rows(), temp.channels());
 	int n = temp.rows(),
 		m = temp.cols();
@@ -671,10 +709,12 @@ const Mat nn::tran(const Mat &temp)
 }
 const Mat nn::mAbs(const Mat &temp)
 {
+#ifdef MAT_DEBUG
 	if (temp.empty()) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw temp;
 	}
+#endif //MAT_DEBUG
 	Mat m(temp.size3());
 	for (int ind = 0; ind < temp.length(); ind++)
 		m(ind) = fabs(temp(ind));
@@ -692,6 +732,7 @@ const Mat nn::Rotate(float angle)
 }
 const Mat nn::POW(const Mat &temp, int num)
 {
+#ifdef MAT_DEBUG
 	if (temp.empty()) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
 		throw temp;
@@ -700,33 +741,35 @@ const Mat nn::POW(const Mat &temp, int num)
 		cerr << errinfo[ERR_INFO_SQUARE] << endl;
 		throw temp;
 	}
-	else {
-		Mat m;
-		temp.swap(m);
-		if (num > 0) {
-			for (int i = 1; i < num; i++)
-				m = m * temp;
-			return m;
-		}
-		else if (num < 0) {
-			Mat a(temp);
-			temp.swap(a);
-			m.setInv();
-			a.setInv();
-			for (int i = -1; i > num; i--)
-				a = a * m;
-			return a;
-		}
-		else
-			return eye(temp.rows());
+#endif //MAT_DEBUG
+	Mat m;
+	temp.swap(m);
+	if (num > 0) {
+		for (int i = 1; i < num; i++)
+			m = m * temp;
+		return m;
 	}
+	else if (num < 0) {
+		Mat a(temp);
+		temp.swap(a);
+		m.setInv();
+		a.setInv();
+		for (int i = -1; i > num; i--)
+			a = a * m;
+		return a;
+	}
+	else
+		return eye(temp.rows());
+
 }
-const Mat nn::mPow(const Mat &temp, int num)
+const Mat nn::mPow(const Mat &temp, float num)
 {
+#ifdef MAT_DEBUG
 	if (temp.empty()) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw temp;
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
+#endif //MAT_DEBUG
 	Mat m(temp.size3());
 	for (int ind = 0; ind < temp.length(); ind++)
 		m(ind) = pow(temp(ind), num);
@@ -734,48 +777,49 @@ const Mat nn::mPow(const Mat &temp, int num)
 }
 const Mat nn::mSum(const Mat &temp, X_Y_Z r_c)
 {
+#ifdef MAT_DEBUG
 	if (temp.empty()) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw temp;
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
+#endif //MAT_DEBUG
 	if (r_c == COL) {
-		Mat m = zeros(temp.channels(), temp.cols());
-		for (int z = 0; z < temp.channels(); z++)
-			for (int i = 0; i < temp.cols(); i++)
+		Mat m = zeros(1, temp.cols(), 1);
+		for (int i = 0; i < temp.cols(); i++)
+			for (int z = 0; z < temp.channels(); z++)
 				for (int j = 0; j < temp.rows(); j++)
-					m(z, i) += temp(j, i, z);
+					m(i) += temp(j, i, z);
 		return m;
 	}
 	else if (r_c == ROW) {
-		Mat m = zeros(temp.rows(), temp.channels());
-		for (int z = 0; z < temp.channels(); z++)
-			for (int i = 0; i < temp.rows(); i++)
+		Mat m = zeros(temp.rows(), 1, 1);
+		for (int i = 0; i < temp.rows(); i++)
+			for (int z = 0; z < temp.channels(); z++)
 				for (int j = 0; j < temp.cols(); j++)
-					m(i, z) += temp(i, j, z);
+					m(i) += temp(i, j, z);
 		return m;
 	}
 	else if (r_c == CHANNEL) {
 		Mat m = zeros(1, 1, temp.channels());
-		for (int z = 0; z < temp.channels(); z++) {
-			float sum = 0;
+		for (int z = 0; z < temp.channels(); z++)
 			for (int i = 0; i < temp.rows(); i++)
 				for (int j = 0; j < temp.cols(); j++)
-					sum += temp(i, j, z);
-			m(z) = sum;
-		}
+					m(z) += temp(i, j, z);
 		return m;
 	}
 	else {
 		cerr << errinfo[ERR_INFO_VALUE] << endl;
-		throw r_c;
+		throw std::exception(errinfo[ERR_INFO_VALUE]);
 	}
 }
 const Mat nn::mExp(const Mat &temp)
 {
+#ifdef MAT_DEBUG
 	if (temp.empty()) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw temp;
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
+#endif //MAT_DEBUG
 	Mat m(temp.size3());
 	for (int ind = 0; ind < temp.length(); ind++) {
 		m(ind) = exp(temp(ind));
@@ -786,10 +830,12 @@ const Mat nn::mExp(const Mat &temp)
 }
 const Mat nn::mLog(const Mat &temp)
 {
+#ifdef MAT_DEBUG
 	if (temp.empty()) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw temp;
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
+#endif //MAT_DEBUG
 	Mat m(temp.size3());
 	for (int ind = 0; ind < temp.length(); ind++) 
 		if (temp(ind) == 0)
@@ -800,10 +846,12 @@ const Mat nn::mLog(const Mat &temp)
 }
 const Mat nn::mSqrt(const Mat &temp)
 {
+#ifdef MAT_DEBUG
 	if (temp.empty()) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw temp;
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
+#endif //MAT_DEBUG
 	Mat m(temp.size3());
 	for (int ind = 0; ind < temp.length(); ind++)
 		m(ind) = sqrt(temp(ind));
@@ -811,10 +859,12 @@ const Mat nn::mSqrt(const Mat &temp)
 }
 const Mat nn::mOpp(const Mat &temp)
 {
+#ifdef MAT_DEBUG
 	if (temp.empty()) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw temp;
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
+#endif //MAT_DEBUG
 	Mat m(temp.size3());
 	for (int ind = 0; ind < temp.length(); ind++)
 		m(ind) = -temp(ind);
@@ -822,10 +872,12 @@ const Mat nn::mOpp(const Mat &temp)
 }
 const Mat nn::Divi(const Mat &a, float val, direction dire)
 {
+#ifdef MAT_DEBUG
 	if (a.empty()) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
+#endif //MAT_DEBUG
 	Mat mark(a.rows(), a.cols(), a.channels());
 	for (int ind = 0; ind < mark.length(); ind++)
 			if (dire == LEFT)
@@ -838,34 +890,61 @@ const Mat nn::Divi(const Mat &a, const Mat &b, direction dire)
 {
 	switch (dire)
 	{
-	case LEFT:return a.Inv()*b;
+	case LEFT:return a.inv()*b;
 	case RIGHT:return a / b;
 	default:
 		cerr << errinfo[ERR_INFO_VALUE] << endl;
-		throw dire;
+		throw std::exception(errinfo[ERR_INFO_VALUE]);
 	}
 }
 const Mat nn::Mult(const Mat &a, const Mat &b)
 {
+#ifdef MAT_DEBUG
 	if (a.isEnable() == -1 || b.isEnable() == -1) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
-	if (a.rows() != b.rows() || a.cols() != b.cols() || a.channels() != b.channels()) {
+#endif //MAT_DEBUG
+	if (b.rows() == 1 && b.cols() == 1 && a.channels() == b.channels()) {
+		Matrix mat(a.size3());
+		for (int i = 0; i < mat.rows(); i++)
+			for (int j = 0; j < mat.cols(); j++)
+				for (int z = 0; z < mat.channels(); z++)
+					mat(i, j, z) = a(i, j, z) * b(z);
+		return mat;
+	}
+	else if (a.rows() == 1 && a.cols() == 1 && a.channels() == b.channels())
+	{
+		Matrix mat(a.size3());
+		for (int i = 0; i < mat.rows(); i++)
+			for (int j = 0; j < mat.cols(); j++)
+				for (int z = 0; z < mat.channels(); z++)
+					mat(i, j, z) = b(i, j, z) * a(z);
+		return mat;
+	}
+#ifdef MAT_DEBUG
+	else if (a.rows() != b.rows() || a.cols() != b.cols() || a.channels() != b.channels()) {
 		cerr << errinfo[ERR_INFO_MULT] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_MULT]);
 	}
+#endif //MAT_DEBUG
 	Mat temp(a.rows(), a.cols(), a.channels());
 	for (int ind = 0; ind < a.length(); ind++)
 		temp(ind) = a(ind) * b(ind);
 	return temp;
 }
+const Mat nn::Dot(const Mat & a, const Mat & b)
+{
+	return a * b;
+}
 const Mat nn::mMax(float a, const Mat &b)
 {
+#ifdef MAT_DEBUG
 	if (b.empty()) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
+#endif //MAT_DEBUG
 	Mat mark(b.rows(), b.cols(), b.channels());
 	for (int ind = 0; ind < b.length(); ind++)
 		mark(ind) = a > b(ind) ? a : b(ind);
@@ -873,14 +952,16 @@ const Mat nn::mMax(float a, const Mat &b)
 }
 const Mat nn::mMax(const Mat &a, const Mat &b)
 {
+#ifdef MAT_DEBUG
 	if (a.empty()|| b.empty()) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
 	if (a.rows() != b.rows() || a.cols() != b.cols() || a.channels() != b.channels()) {
 		cerr << errinfo[ERR_INFO_MULT] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_MULT]);
 	}
+#endif //MAT_DEBUG
 	Mat mark(b.rows(), b.cols(), b.channels());
 	for (int ind = 0; ind < b.length(); ind++)
 		mark(ind) = a(ind) > b(ind) ? a(ind) : b(ind);
@@ -888,10 +969,12 @@ const Mat nn::mMax(const Mat &a, const Mat &b)
 }
 const Mat nn::mMin(float a, const Mat &b)
 {
+#ifdef MAT_DEBUG
 	if (b.empty()) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
+#endif //MAT_DEBUG
 	Mat mark(b.rows(), b.cols(), b.channels());
 	for (int ind = 0; ind < b.length(); ind++)
 		mark(ind) = a < b(ind) ? a : b(ind);
@@ -899,53 +982,59 @@ const Mat nn::mMin(float a, const Mat &b)
 }
 const Mat nn::mMin(const Mat &a, const Mat &b)
 {
+#ifdef MAT_DEBUG
 	if (a.empty() || b.empty()) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
 	if (a.rows() != b.rows() || a.cols() != b.cols() || a.channels() != b.channels()) {
 		cerr << errinfo[ERR_INFO_MULT] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_MULT]);
 	}
+#endif //MAT_DEBUG
 	Mat mark(b.rows(), b.cols(), b.channels());
 	for (int ind = 0; ind < b.length(); ind++)
 		mark(ind) = a(ind) < b(ind) ? a(ind) : b(ind);
 	return mark;
 }
-Size3 nn::mCalSize(Size3 src, Size3 kern, Point & anchor, Size strides, int & top, int & bottom, int & left, int & right)
+Size3 nn::mCalSize(Size3 src, Size3 kern, Point anchor, Size strides, int & top, int & bottom, int & left, int & right)
 {
-	int kern_row = kern.x;
-	int kern_col = kern.y;
-	if (anchor == Point(-1, -1)) {
-		anchor.x = kern_row % 2 ? kern_row / 2 : kern_row / 2 - 1;
-		anchor.y = kern_col % 2 ? kern_col / 2 : kern_col / 2 - 1;
-	}
+	int kern_row = kern.h;
+	int kern_col = kern.w;
 	top = anchor.x;
 	bottom = kern_row - anchor.x - 1;
 	left = anchor.y;
 	right = kern_col - anchor.y - 1;
-	return Size3((src.x - top - bottom) / strides.hei, (src.y - left - right) / strides.wid, kern.z/ src.z);
+	return Size3(int(float(src.h - kern_row + 1) / float(strides.h) + 0.5f), int(float(src.w - kern_col + 1) / float(strides.w) + 0.5f), kern.c / src.c);
 }
 Size3 nn::mCalSize(Size3 src, Size3 kern, Point &anchor, Size strides)
 {
-	int kern_row = kern.y;
-	int kern_col = kern.x;
+	int kern_row = kern.h;
+	int kern_col = kern.w;
 	if (anchor == Point(-1, -1)) {
-		anchor.x = kern_row % 2 ? kern_row / 2 : kern_row / 2 - 1;
-		anchor.y = kern_col % 2 ? kern_col / 2 : kern_col / 2 - 1;
+		anchor.x = kern_row / 2;
+		anchor.y = kern_col / 2;
 	}
-	int top = anchor.x;
-	int bottom = kern_row - anchor.x - 1;
-	int left = anchor.y;
-	int right = kern_col - anchor.y - 1;
-	return Size3((src.y - top - bottom) / strides.hei, (src.x - left - right) / strides.wid, kern.z / src.z);
+	return Size3(int(float(src.h - kern_row + 1) / float(strides.h) + 0.5f), int(float(src.w - kern_col + 1) / float(strides.w) + 0.5f), kern.c / src.c);
+}
+Size3 nn::mCalSize(Size3 src, Size kern, Point & anchor, Size strides)
+{
+	int kern_row = kern.h;
+	int kern_col = kern.w;
+	if (anchor == Point(-1, -1)) {
+		anchor.x = kern_row / 2;
+		anchor.y = kern_col / 2;
+	}
+	return Size3(int(float(src.h - kern_row + 1) / float(strides.h) + 0.5f), int(float(src.w - kern_col + 1) / float(strides.w) + 0.5f), src.c);
 }
 const Mat nn::mThreshold(const Mat & src, float boundary, float lower, float upper, int boundary2upper)
 {
+#ifdef MAT_DEBUG
 	if (src.empty()) {
 		cerr << errinfo[ERR_INFO_EMPTY] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
 	}
+#endif //MAT_DEBUG
 	Mat mark;
 	src.swap(mark);
 	switch (boundary2upper)
@@ -964,18 +1053,18 @@ const Mat nn::mThreshold(const Mat & src, float boundary, float lower, float upp
 		break;
 	default:
 		cerr << errinfo[ERR_INFO_UNLESS] << endl;
-		throw errinfo[0];
+		throw std::exception(errinfo[ERR_INFO_UNLESS]);
 	}
 	return mark;
 }
 const Mat nn::Filter2D(const Mat & input, const Mat & kern, Point anchor, const Size & strides, bool is_copy_border)
 {
 	if (input.channels() != 1) {
-		fprintf(stderr, "input must be 2D!");
+		fprintf(stderr, "input must be 2D!\n");
 		throw Mat();
 	}
 	if (kern.channels() != 1) {
-		fprintf(stderr, "kern must be 2D!");
+		fprintf(stderr, "kern must be 2D!\n");
 		throw Mat();
 	}
 	int kern_row = kern.rows();
@@ -985,14 +1074,14 @@ const Mat nn::Filter2D(const Mat & input, const Mat & kern, Point anchor, const 
 	Mat dst, src;
 	if (is_copy_border) {		
 		src = copyMakeBorder(input, top, bottom, left, right);
-		dst = zeros(input.rows() / strides.hei, input.cols() / strides.wid);
+		dst = zeros(input.rows() / strides.h, input.cols() / strides.w);
 	}
 	else {
 		src = input;
-		dst = zeros(size.x, size.y);
+		dst = zeros(size.h, size.w);
 	}
-	for (int row = top, x = 0; row < src.rows() - bottom; row += (int)strides.hei, x++)
-		for (int col = left, y = 0; col < src.cols() - right; col += (int)strides.wid, y++) {
+	for (int row = top, x = 0; row < src.rows() - bottom; row += strides.h, x++)
+		for (int col = left, y = 0; col < src.cols() - right; col += strides.w, y++) {
 			float value = 0;
 			for (int i = 0; i < kern_row; ++i) {
 				for (int j = 0; j < kern_col; ++j) {
@@ -1004,9 +1093,43 @@ const Mat nn::Filter2D(const Mat & input, const Mat & kern, Point anchor, const 
 	return dst;
 }
 
+void nn::Filter2D(const Mat & input, Mat & out, const Mat & kern, Point anchor, const Size & strides, bool is_copy_border)
+{
+	Mat in;
+	int kern_row = kern.rows();
+	int kern_col = kern.cols();
+	int left, right, top, bottom;
+	Size3 size = mCalSize(input.size3(), kern.size3(), anchor, strides, left, right, top, bottom);
+	if (is_copy_border) {
+		in = copyMakeBorder(input, top, bottom, left, right);
+		out = zeros(input.rows() / strides.h, input.cols() / strides.w, size.c);
+	}
+	else {
+		in = input;
+		out = zeros(size);
+	}
+	for (int kern_c = 0; kern_c < size.c; kern_c++) {
+		for (int in_c = 0; in_c < input.channels(); in_c++) {
+			int c = kern_c * input.channels() + in_c;
+			for (int row = top, x = 0; row < in.rows() - bottom; row += strides.h, x++)
+				for (int col = left, y = 0; col < in.cols() - right; col += strides.w, y++) {
+					int px = col - anchor.y;
+					int py = row - anchor.x;
+					float value = 0;
+					for (int i = 0; i < kern_row; ++i) {
+						for (int j = 0; j < kern_col; ++j) {
+							value += in(py + i, px + j, in_c)*kern(i, j, c);
+						}
+					}
+					out(x, y, kern_c) += value;
+				}
+		}
+	}
+}
+
 const Mat nn::LeastSquare(const Mat & x, const Mat & y)
 {
-	return (x.t()*x).Inv()*x.t()*y;
+	return (x.t()*x).inv()*x.t()*y;
 }
 
 const Mat nn::Reshape(const Mat & src, Size3 size)
@@ -1015,6 +1138,25 @@ const Mat nn::Reshape(const Mat & src, Size3 size)
 	src.swap(dst);
 	dst.reshape(size);
 	return dst;
+}
+
+const Mat nn::SumChannel(const Mat & src)
+{
+#ifdef MAT_DEBUG
+	if (src.empty()) {
+		cerr << errinfo[ERR_INFO_EMPTY] << endl;
+		throw std::exception(errinfo[ERR_INFO_EMPTY]);
+	}
+#endif //MAT_DEBUG
+	Mat m = zeros(src.mSize());
+	for (int i = 0; i < src.rows(); i++)
+		for (int j = 0; j < src.cols(); j++) {
+			float sum = 0;
+			for (int z = 0; z < src.channels(); z++)
+				sum += src(i, j, z);
+			m(i, j) = sum;
+		}
+	return m;
 }
 
 const Mat nn::rotate(const Mat & src, RotateAngle dice)
@@ -1060,7 +1202,7 @@ const Mat nn::rotate(const Mat & src, RotateAngle dice)
 
 void nn::pause()
 {
-	fprintf(stderr, "waitting press enter key...");
+	fprintf(stderr, "waitting press enter key...\n");
 	while (getchar() != '\n');
 }
 

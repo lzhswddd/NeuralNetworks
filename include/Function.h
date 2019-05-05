@@ -1,7 +1,7 @@
 #ifndef __FUNCTION_H__
 #define __FUNCTION_H__
 
-#include "Mat.h"
+#include "mat.h"
 #include <string>
 using std::string;
 namespace nn {

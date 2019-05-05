@@ -94,6 +94,9 @@ namespace nn
 		int y;
 		int width;
 		int height;
+		int area()const {
+			return width * height;
+		}
 		friend std::ostream & operator << (std::ostream &out, const Rect &t)
 		{
 			out << "Rect(" << t.x << "," << t.y << ","<< t.width << "," << t.height << ")";
@@ -103,28 +106,34 @@ namespace nn
 	class Size
 	{
 	public:
-		Size() :hei(0), wid(0) {}
-		Size(int height, int width) :hei(height), wid(width) {}
+		Size() :h(0), w(0) {}
+		Size(int height, int width) :h(height), w(width) {}
 		~Size() {}
-		int hei;
-		int wid;
+		int h;
+		int w; 
+		int area()const {
+			return h * w;
+		}
 		friend std::ostream & operator << (std::ostream &out, const Size &t)
 		{
-			out << "Size(" << t.hei << "," << t.wid << ")";
+			out << "Size(" << t.h << "," << t.w << ")";
 			return out;
 		}
 	};
 	class Size3
 	{
 	public:
-		explicit Size3() : x(0), y(0), z(0) {}
-		Size3(int x, int y, int z = 1) : x(x), y(y), z(z) {}
-		int x;
-		int y;
-		int z;
+		explicit Size3() : h(0), w(0), c(0) {}
+		Size3(int x, int y, int z = 1) : h(x), w(y), c(z) {}
+		int h;
+		int w;
+		int c;
+		int area()const {
+			return h * w * c;
+		}
 		friend std::ostream & operator << (std::ostream &out, const Size3 &t)
 		{
-			out << "Size(" << t.x << "," << t.y << "," << t.z << ")";
+			out << "Size(" << t.h << "," << t.w << "," << t.c << ")";
 			return out;
 		}
 	};

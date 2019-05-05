@@ -1,4 +1,5 @@
 #include "MTCNN.h"
+#include "imgprocess.h"
 
 nn::MTCNN::MTCNN()
 {
@@ -19,8 +20,8 @@ void nn::MTCNN::detect(Mat & img_, std::vector<Bbox>& finalBbox_)
 	PNet();
 	//the first stage's nms
 	if (firstBbox_.empty()) return;
-	nms(firstBbox_, nms_threshold[0]);
-	refine(firstBbox_, img_h, img_w, true);
+	method::nms(firstBbox_, nms_threshold[0]);
+	method::refine(firstBbox_, img_h, img_w, true);
 	//printf("firstBbox_.size()=%d\n", firstBbox_.size());
 	firstBbox_.swap(finalBbox_);
 	return;
@@ -28,15 +29,15 @@ void nn::MTCNN::detect(Mat & img_, std::vector<Bbox>& finalBbox_)
 	RNet();
 	//printf("secondBbox_.size()=%d\n", secondBbox_.size());
 	if (secondBbox_.size() < 1) return;
-	nms(secondBbox_, nms_threshold[1]);
-	refine(secondBbox_, img_h, img_w, true);
+	method::nms(secondBbox_, nms_threshold[1]);
+	method::refine(secondBbox_, img_h, img_w, true);
 
 	//third stage 
 	ONet();
 	//printf("thirdBbox_.size()=%d\n", thirdBbox_.size());
 	if (thirdBbox_.empty()) return;
-	refine(thirdBbox_, img_h, img_w, true);
-	nms(thirdBbox_, nms_threshold[2], "Min");
+	method::refine(thirdBbox_, img_h, img_w, true);
+	method::nms(thirdBbox_, nms_threshold[2], "Min");
 	thirdBbox_.swap(finalBbox_);
 }
 
@@ -58,13 +59,13 @@ void nn::MTCNN::PNet()
 		int ws = (int)ceil(img_w * scales_[i]);
 		Mat in;
 		Mat score_, location_;
-		resize(img, in, Size(hs, ws), LocalMean);
+		method::resize(img, in, Size(hs, ws), LocalMean);
 		vector<Mat> out = Pnet(in);
 		score_ = out[0];
 		location_ = out[1];
 		std::vector<Bbox> boundingBox_;
-		generateBbox(score_, location_, boundingBox_, scales_[i], threshold[0]);
-		nms(boundingBox_, nms_threshold[0]);
+		method::generateBbox(score_, location_, boundingBox_, scales_[i], threshold[0]);
+		method::nms(boundingBox_, nms_threshold[0]);
 		firstBbox_.insert(firstBbox_.end(), boundingBox_.begin(), boundingBox_.end());
 		boundingBox_.clear();
 	}
@@ -78,7 +79,7 @@ void nn::MTCNN::RNet()
 		Mat tempIm;
 		tempIm = copyMakeBorder(img, (*it).y1, img_h - (*it).y2, (*it).x1, img_w - (*it).x2);
 		Mat in, score, bbox;
-		resize(tempIm, in, 24, 24, LocalMean);
+		method::resize(tempIm, in, 24, 24, LocalMean);
 		vector<Mat> out = Pnet(in);
 		score = out[0];
 		bbox = out[1];
@@ -100,7 +101,7 @@ void nn::MTCNN::ONet()
 		Mat tempIm;
 		tempIm = copyMakeBorder(img, (*it).y1, img_h - (*it).y2, (*it).x1, img_w - (*it).x2);
 		Mat in;
-		resize(tempIm, in, 48, 48, LocalMean);
+		method::resize(tempIm, in, 48, 48, LocalMean);
 		Mat score, bbox, keyPoint;
 		vector<Mat> out = Pnet(in);
 		score = out[0];

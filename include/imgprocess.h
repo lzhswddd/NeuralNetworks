@@ -1,8 +1,8 @@
 #ifndef __IMGPROCESS_H__
 #define __IMGPROCESS_H__
 
-#include "Image.h"
-#include "Vriable.h"
+#include "image.h"
+#include "vriable.h"
 #include <vector>
 #include <string>
 
@@ -22,6 +22,10 @@ namespace nn
 	const Mat mImread(std::string image_path, bool is_gray = false);
 	//¶ÁÈ¡Í¼Ïñ
 	const Mat mImread(const char *image_path, bool is_gray = false);
+	//±£´æÍ¼Ïñ
+	void mImwrite(std::string image_path, const Mat& image);
+	//±£´æÍ¼Ïñ
+	void mImwrite(const char *image_path, const Mat& image);
 	//±£´æÍ¼Ïñ
 	void Imwrite(std::string image_path, const Image& image);
 	//±£´æÍ¼Ïñ

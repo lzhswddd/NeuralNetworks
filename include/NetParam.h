@@ -1,9 +1,9 @@
 #ifndef __NETPARAM_H__
 #define __NETPARAM_H__
 
-#include "Vriable.h"
-#include "Function.h"
-#include "Mat.h"
+#include "vriable.h"
+#include "function.h"
+#include "mat.h"
 #include <vector>
 
 using nn::Mat;
@@ -29,8 +29,7 @@ namespace nn
 	};
 	/**
 	CONV2D			卷积层
-	MAX_POOL		最大值池化层
-	AVERAGE_POOL	平均值池化层
+	POOL			池化层
 	FULL_CONNECTION 全连接层
 	ACTIVATION		激活层
 	RESHAPE			重置维度层
@@ -38,13 +37,14 @@ namespace nn
 	*/
 	enum LayerType {
 		NONE = 0,
+		POOL,
 		CONV2D,
-		MAX_POOL,
-		AVERAGE_POOL,
 		FULLCONNECTION,
+		BATCHNORMALIZATION,
 		ACTIVATION,
 		RESHAPE,
 		DROPOUT,
+		PRELU,
 		LOSS
 	};
 	/**
@@ -68,7 +68,7 @@ namespace nn
 		Adam,			//!< 提供自适应学习率动量梯度下降法
 		NesterovAdam	//!< 提供自适应学习率预测动量梯度下降法
 	};
-	template<typename _Tp>
+	template<class _Tp>
 	class NetNode
 	{
 	public:
@@ -77,12 +77,12 @@ namespace nn
 		{
 
 		}
-		NetNode(const _Tp &data)
+		NetNode(_Tp &data)
 			: data(data), child(), parent(nullptr)
 		{
 
 		}
-		NetNode(const _Tp &data, NetNode<_Tp>* parent)
+		NetNode(_Tp &data, NetNode<_Tp>* parent)
 			: data(data), child(), parent(parent), sibling()
 		{
 			
@@ -129,83 +129,6 @@ namespace nn
 		Size strides;
 		Point anchor;
 		bool is_copy_border;
-	};
-	class FCInfo
-	{
-	public:
-		explicit FCInfo() {}
-		bool isact = false;
-		int size;
-	};
-	class PoolInfo
-	{
-	public:
-		explicit PoolInfo() {}
-		Size size;
-		int strides;
-	};
-	class ReShapeInfo
-	{
-	public:
-		explicit ReShapeInfo() {}
-		Size3 size;
-	};
-	class DropoutInfo
-	{
-	public:
-		explicit DropoutInfo() {}
-		float dropout;
-	};
-	/**
-	@brief Loss 损失函数类
-	成员
-	LossFunc loss_f 损失函数
-	LossFunc loss_df 损失函数导数
-	*/
-	class LossInfo
-	{
-	public:
-		explicit LossInfo() :f(nullptr), df(nullptr) {}
-		LossInfo(LossFunc loss_f)
-		{
-			SetFunc(loss_f, &this->f, &this->df);
-			if(loss_f == CrossEntropy || loss_f == SoftmaxCrossEntropy)
-				ignore_active = true;
-		}
-		LossInfo(ReduceType loss_f)
-		{
-			switch (loss_f)
-			{
-			case nn::NORM_L1:
-				SetFunc(L1, &this->f, &this->df);
-				break;
-			case nn::NORM_L2:
-				SetFunc(L2, &this->f, &this->df);
-				break;
-			case nn::QUADRATIC:
-				SetFunc(Quadratic, &this->f, &this->df);
-				break;
-			case nn::CROSSENTROPY:
-				SetFunc(CrossEntropy, &this->f, &this->df);
-				ignore_active = true;
-				break;
-			case nn::SOFTMAXCROSSENTROPY:
-				SetFunc(SoftmaxCrossEntropy, &this->f, &this->df);
-				ignore_active = true;
-				break;
-			default:
-				break;
-			}
-		}
-		void clean()
-		{
-			f = nullptr;
-			df = nullptr;
-		}
-		LossFunc f;
-		LossFunc df;
-		bool ignore_active = false;
-		float weight = 1.0f;
 	};
 	class NetData
 	{
