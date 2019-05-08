@@ -1,5 +1,10 @@
 #include "MTCNN.h"
-#include "imgprocess.h"
+#include "include.h"
+#include <iostream>
+#include <windows.h>
+using std::cout;
+using std::endl;
+
 
 nn::MTCNN::MTCNN()
 {
@@ -119,5 +124,218 @@ void nn::MTCNN::ONet()
 			}
 			thirdBbox_.push_back(*it);
 		}
+	}
+}
+
+const Mat nn::MTCNN::FaceClassifyLoss(const Mat &y, const Mat &y0)
+{
+	Mat y1 = zeros(y0.size3());
+	if (y(0) == -1.0f)
+		return y1;
+	else {
+		y1((int)y(0)) = 1.0f;
+		return CrossEntropy(y1, y0);
+	}
+}
+
+const Mat nn::MTCNN::FaceClassifyLoss_D(const Mat &y, const Mat &y0)
+{
+	Mat y1 = zeros(y0.size3());
+	if (y(0) == -1.0f)
+		return y1;
+	else {
+		y1((int)y(0)) = 1.0f;
+		return D_CrossEntropy(y1, y0);
+	}
+}
+
+const Mat nn::MTCNN::BboxLoss(const Mat &y, const Mat &y0)
+{
+	if (y.sum() == 0.0f)
+		return y;
+	else
+		return L2(y, y0);
+}
+
+const Mat nn::MTCNN::BboxLoss_D(const Mat &y, const Mat &y0)
+{
+	if (y.sum() == 0.0f)
+		return y;
+	else
+		return D_L2(y, y0);
+}
+
+void nn::MTCNN::image_processing(const Mat& src, Mat&dst)
+{
+	dst = (src - 127.5f)*0.0078125f;
+}
+
+const vector<Mat> nn::MTCNN::label_processing(const Mat &label)
+{
+	//vector<Mat> label_(1, value(label(0), 1, 1, 1));
+	vector<Mat> label_(2, value(label(0), 1, 1, 1));
+	if (label(0) == 0.0f)
+		label_[1] = zeros(1, 1, 4);
+	else {
+		label_[1] = Block(label, 1, label.rows() - 1, 0, 0);
+		label_[1].reshape(1, 1, 4);
+		/*float temp = label_[1](0);
+		label_[1](0) = -label_[1](2);
+		label_[1](2) = -temp;*/
+	}
+	return label_;
+}
+
+nn::Net nn::MTCNN::create_pnet(bool load, string model)
+{
+	Size3 size(12, 12, 3); 
+	Net net;
+	net.add(Conv2D(10, 3, false, 0, "conv_1"));
+	net.add(PReLU("activate_1"));
+	net.add(MaxPool(Size(2, 2), 2, "maxpool_1"));
+	net.add(Conv2D(16, 3, false, 0, "conv_2"));
+	net.add(PReLU("activate_2"));
+	net.add(Conv2D(32, 3, false, 0, "conv_3"));
+	net.add(PReLU("activate_3"));
+	//net.add(Conv2D(2, 1, false, Softmax, "fcl"));
+	//net.add(Loss(CrossEntropy, 1, "fc_loss"));
+	net.add(Conv2D(2, 1, false, Softmax, "fc1"));
+	net.add(Conv2D(4, 1, false, 0, "bbox"), "activate_3", true);
+	net.add(Loss(FaceClassifyLoss, FaceClassifyLoss_D, true, 1, "fc_loss"));
+	net.add(Loss(BboxLoss, BboxLoss_D, false, 0, "bbox_loss"), "bbox");
+	net.initialize(size);
+	if(load)
+		net.load_param(model);
+	return net;
+}
+
+void nn::MTCNN::trainPNet(string rootpath, string imglist, string imagedir,
+	int batch_size, bool load, string model, string optimizer_param)
+{
+	Size3 size(12, 12, 3);
+	Pnet = create_pnet(load, model);
+
+	cout << Pnet << endl;
+	Mat x = mRand(-1, 1, size, true);
+
+	vector<Mat> output = Pnet(x);
+	cout << "input " << x.size3() << endl;
+	cout << "output ";
+	for (Mat &y : output)
+		cout << y.size3() << endl;
+
+	Train train;
+	train.regularization = true;
+	train.lambda = 0.001f;
+	Optimizer *optimizer = Optimizer::CreateOptimizer(OptimizerInfo(Adam, 1e-3f));
+	if (load) {
+		optimizer->load(optimizer_param);
+	}
+	TrainData trainData(rootpath,
+		imglist, imagedir,
+		batch_size, label_processing);
+	trainData.register_process(0, image_processing);
+	trainData.load_all_data(true);
+
+	if (load) {
+		train.RegisterNet(&Pnet);
+		train.RegisterOptimizer(optimizer);
+		train.initialize();
+	}
+	else
+		train.Fit(&Pnet, trainData, optimizer, 1, 1, true, true);
+
+	LARGE_INTEGER t1, t2, tc;
+	QueryPerformanceFrequency(&tc);
+	int count, recount;
+	count = recount = 0;
+	int success, sum, background, human, class_1, class_2;
+	while (1) {
+		if (trainData.all_load()) {
+			success = sum = background = human = class_1 = class_2 = 0;
+			TrainData::Databox boxes = trainData.all_batches();
+			for (TrainData::DataboxIter &vec : *boxes) {
+				for (const NetData *data : vec) {
+					if (data->label[0](0) == -1.0f)continue;
+					Mat output = Pnet(data->input)[0];
+					if (output.maxAt() == (int)data->label[0](0))
+						success += 1;
+					if ((int)data->label[0](0) == 1) {
+						human += 1;
+					}
+					else {
+						background += 1;
+					}
+					if (output.maxAt() == 1) {
+						class_2 += 1;
+					}
+					else {
+						class_1 += 1;
+					}
+					sum += 1;
+				}
+			}
+			printf("background(%d, %d), human(%d, %d), total(%d, %d), acc %0.4f\n", class_1, background, class_2, human, success, sum, (float)success / (float)sum * 100);
+		}
+		/*Image img = Imread("D:\\mtcnn\\test01.jpg");
+		if (!img.empty()) {
+			Mat m = Image2Mat(img);
+			vector<Bbox> finalBbox;
+			QueryPerformanceCounter(&t1);
+			detect(m, finalBbox);
+			QueryPerformanceCounter(&t2);
+			cout << finalBbox.size() << " cost time: " << (t2.QuadPart - t1.QuadPart)*1.0 / tc.QuadPart << "sec" << endl;
+			for (Bbox bbox : finalBbox)
+			{
+				rectangle(img, bbox.x1, bbox.y1, bbox.x2, bbox.y2, Color(rand() % 256, rand() % 256, rand() % 256), 1);
+			}
+
+			Imwrite("./test.jpg", img);
+			img.release();
+			m.release();
+			finalBbox.clear();
+		}*/
+		train.Fit(trainData, 1, 1, false);
+		printf("count: %d\n", count + 1);
+		Pnet.save_param(model);
+		optimizer->save(optimizer_param);
+		count += 1;
+		//count = (count + 1) % 100;
+		//if (count == 99)
+		//{
+		//	//optimizer->Step() = optimizer->Step()*0.1;
+		//	recount += 1;
+		//}
+		//if (recount == 4)break;
+	}
+	delete optimizer;
+	optimizer = nullptr;
+}
+
+
+void nn::MTCNN::testPNet(string model, string pic, string savepath)
+{
+	Pnet = create_pnet(true, model);
+
+	LARGE_INTEGER t1, t2, tc;
+	QueryPerformanceFrequency(&tc);
+	Image img = Imread(pic);
+	if (!img.empty()) {
+		Mat m = Image2Mat(img);
+		vector<Bbox> finalBbox;
+		QueryPerformanceCounter(&t1);
+		detect(m, finalBbox);
+		QueryPerformanceCounter(&t2);
+		cout << finalBbox.size() << " cost time: " << (t2.QuadPart - t1.QuadPart)*1.0 / tc.QuadPart << "sec" << endl;
+		for (Bbox bbox : finalBbox)
+		{
+			//if(bbox.score>0.9f)
+			rectangle(img, bbox.x1, bbox.y1, bbox.x2, bbox.y2, Color(rand() % 256, rand() % 256, rand() % 256), 1);
+		}
+
+		Imwrite(savepath, img);
+		img.release();
+		m.release();
+		finalBbox.clear();
 	}
 }

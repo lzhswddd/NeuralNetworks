@@ -24,11 +24,6 @@ namespace nn {
 	*/
 	const Mat Softmax(const Mat &y);
 	/**
-	@brief L1函数
-	E = abs(y - y0)
-	*/
-	const Mat L1(const Mat & y, const Mat & y0);
-	/**
 	@brief L2函数
 	E = (y - y0)^2
 	*/
@@ -84,11 +79,6 @@ namespace nn {
 	y = y*(1 - y),
 	*/
 	const Mat D_Softmax(const Mat & y);
-	/**
-	@brief L1导数
-	y = 1,
-	*/
-	const Mat D_L1(const Mat & y, const Mat & y0);
 	/**
 	@brief L2导数
 	y = 2 * (y0 - y),

@@ -4,7 +4,7 @@ using nn::Mat;
 const Mat nn::Softmax(const Mat &y)
 {
 	Mat out;
-	if (y.channels() != 1) {
+	if (y.dims() == 3) {
 		out = y.clone();
 		for (int i = 0; i < y.rows(); ++i)
 		{
@@ -29,11 +29,6 @@ const Mat nn::Softmax(const Mat &y)
 	return out;
 }
 
-const Mat nn::L1(const Mat & y, const Mat & y0)
-{
-	return (y - y0).abs();
-}
-
 const Mat nn::L2(const Mat & y, const Mat & y0)
 {
 	return (y - y0).pow(2);
@@ -41,7 +36,7 @@ const Mat nn::L2(const Mat & y, const Mat & y0)
 
 const Mat nn::Quadratic(const Mat &y, const Mat &y0)
 {
-	return 0.5 * mPow(y - y0, 2);
+	return 0.5f * mPow(y - y0, 2);
 }
 
 const Mat nn::CrossEntropy(const Mat &y, const Mat &y0)
@@ -110,11 +105,6 @@ const Mat nn::LReLU(const Mat & x)
 const Mat nn::D_Softmax(const Mat &y)
 {
 	return Mult(y, 1 - y);
-}
-
-const Mat nn::D_L1(const Mat & y, const Mat & y0)
-{
-	return ones(y.size3());
 }
 
 const Mat nn::D_L2(const Mat & y, const Mat & y0)
@@ -219,10 +209,6 @@ void nn::SetFunc(string func_name, LossFunc *f, LossFunc *df)
 		*f = SoftmaxCrossEntropy;
 		*df = D_SoftmaxCrossEntropy;
 	}
-	else if (func_name == "L1") {
-		*f = L1;
-		*df = D_L1;
-	}
 	else if (func_name == "L2") {
 		*f = L2;
 		*df = D_L2;
@@ -272,10 +258,6 @@ void nn::SetFunc(LossFunc func, LossFunc * f, LossFunc * df)
 	else if (func == SoftmaxCrossEntropy) {
 		*f = SoftmaxCrossEntropy;
 		*df = D_SoftmaxCrossEntropy;
-	}
-	else if (func == L1) {
-		*f = L1;
-		*df = D_L1;
 	}
 	else if (func == L2) {
 		*f = L2;
@@ -353,9 +335,6 @@ string nn::Func2String(LossFunc f)
 	}
 	else if (f == SoftmaxCrossEntropy) {
 		fun_name = "SoftmaxCrossEntropy";
-	}
-	else if (f == L1) {
-		fun_name = "L1";
 	}
 	else if (f == L2) {
 		fun_name = "L2";

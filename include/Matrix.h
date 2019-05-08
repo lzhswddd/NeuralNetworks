@@ -32,25 +32,31 @@ namespace nn {
 	public:
 		explicit Matrix();
 		/**
-		@brief 生成row*col*1的方阵,用0填充
+		@brief 生成1*col*1的方阵
+		@param row 矩阵行数
+		@param col 矩阵列数
+		*/
+		Matrix(int w);
+		/**
+		@brief 生成row*col*1的方阵
 		@param row 矩阵行数
 		@param col 矩阵列数
 		*/
 		Matrix(int row, int col);
 		/**
-		@brief 生成row*col*depth的方阵,用0填充
+		@brief 生成row*col*depth的方阵
 		@param row 矩阵行数
 		@param col 矩阵列数
 		@param depth 矩阵通道数
 		*/
 		Matrix(int row, int col, int depth);
 		/**
-		@brief 生成size*1的方阵,用0填充
+		@brief 生成size*1的方阵
 		@param size_ 矩阵尺寸
 		*/
 		Matrix(Size size_);
 		/**
-		@brief 生成size的方阵,用0填充
+		@brief 生成size的方阵
 		@param size_ 矩阵尺寸
 		*/
 		Matrix(Size3 size_);
@@ -151,15 +157,19 @@ namespace nn {
 		*/
 		int total()const;
 		/**
-		@brief 返回矩阵行数
+		@brief 返回维度
+		*/
+		int dims()const;
+		/**
+		@brief 返回行数
 		*/
 		int rows()const;
 		/**
-		@brief 返回矩阵列数
+		@brief 返回列数
 		*/
 		int cols()const;
 		/**
-		@brief 返回矩阵通道数
+		@brief 返回通道数
 		*/
 		int channels()const;
 		/**
@@ -349,7 +359,7 @@ namespace nn {
 		@brief 设置矩阵的num次幂
 		@param num 次幂
 		*/
-		void setPow(int num);
+		void setPow(float num);
 		/**
 		@brief 设置取反
 		*/
@@ -667,6 +677,7 @@ namespace nn {
 		int row;
 		int col;
 		int channel;
+		int dim;
 		bool square;
 		int offset_c;
 		float *matrix;

@@ -29,6 +29,7 @@ namespace nn {
 		Mat	moving_mean;
 		Mat moving_var;
 	private:	
+		bool isVec;
 		Mat mean, var;
 		vector<Mat> variable[2];
 	};

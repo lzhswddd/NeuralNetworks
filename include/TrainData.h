@@ -24,6 +24,7 @@ namespace nn {
 		void reset();
 		void clear();
 		int batchSize()const;
+		bool all_load()const;
 		int len()const;
 		iterator batches();
 		Databox all_batches()const;

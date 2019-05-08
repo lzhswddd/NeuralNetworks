@@ -17,10 +17,10 @@ nn::Size3 nn::batchnormalization::initialize(Size3 param_size)
 {
 	Size3 size(1, 1, 1);
 	if (param_size.c == 1) {
-		size.h = param_size.h;
+		size.h = param_size.h; isVec = true;
 	}
 	else {
-		size.c = param_size.c;
+		size.c = param_size.c; isVec = false;
 	}
 	gamma = ones(size);
 	beta = zeros(size);
@@ -56,7 +56,10 @@ void nn::batchnormalization::forword_train(const vector<Mat>& in, vector<Mat>& o
 	vector<Mat> temp(in.size());
 	vector<Mat>::iterator iter = temp.begin();
 	for (const Mat &m : in) {
-		*iter = mSum(m, CHANNEL);
+		if(isVec)
+			*iter = m;
+		else
+			*iter = mSum(m, CHANNEL);
 		mean += *iter;
 		iter += 1;
 	}
@@ -80,22 +83,36 @@ void nn::batchnormalization::forword_train(const vector<Mat>& in, vector<Mat>& o
 void nn::batchnormalization::back(const vector<Mat>& in, vector<Mat>& out, vector<Mat>* dlayer, int * number) const
 {
 	float N = (float)in.size();
-	Size3 size = in[0].size3();
+	float size = (float)in[0].size3().area();
 	vector<Mat> d(in.size());
 	vector<Mat> dx(in.size());
 	Mat dv = zeros(in[0].size3());
 	Mat dm = zeros(in[0].size3());
 	Mat err = var + epsilon;
 	for (size_t idx = 0; idx < in.size(); ++idx) {
-		(*dlayer)[dlayer->size() - 1 - *number] += mSum(in[idx], CHANNEL);
-		(*dlayer)[dlayer->size() - 2 - *number] += mSum(Mult(in[idx], variable[1][idx]), CHANNEL);
+		if (isVec) {
+			(*dlayer)[dlayer->size() - 1 - *number] += in[idx];
+			(*dlayer)[dlayer->size() - 2 - *number] += Mult(in[idx], variable[1][idx]);
+		}
+		else {
+			(*dlayer)[dlayer->size() - 1 - *number] += mSum(in[idx], CHANNEL);
+			(*dlayer)[dlayer->size() - 2 - *number] += mSum(Mult(in[idx], variable[1][idx]), CHANNEL);
+		}
 		dx[idx] = Mult(in[idx], gamma);
 		d[idx] = variable[0][idx] - mean;
-		dv += Mult(Mult(dx[idx], d[idx]), -0.5f / err.pow(1.5f));
+		dv += Mult(Mult(dx[idx], d[idx]), -0.5f / err.pow(3).sqrt());
 		dm += Mult(dx[idx], -1.0f / err.sqrt());
 	}
-	//(*dlayer)[dlayer->size() - 1 - *number] /= N;
-	//(*dlayer)[dlayer->size() - 2 - *number] /= N;
+	dv /= N;
+	dm /= N; 
+	if (isVec) {
+		(*dlayer)[dlayer->size() - 1 - *number] /= N;
+		(*dlayer)[dlayer->size() - 2 - *number] /= N;
+	}
+	else {
+		(*dlayer)[dlayer->size() - 1 - *number] /= N * size;
+		(*dlayer)[dlayer->size() - 2 - *number] /= N * size;
+	}
 	for (size_t idx = 0; idx < in.size(); ++idx) {
 		out[idx] = Mult(dx[idx], 1.0f / err.sqrt()) + Mult(dv, (2.0f*(d[idx])) / N) + dm * 1.0f / N;
 		//out[idx].save("test.txt", false);
@@ -121,7 +138,6 @@ void nn::batchnormalization::save(json * jarray, FILE * file) const
 
 void nn::batchnormalization::load(json & info, FILE * file)
 {
-	type = Layer::String2Type(info["type"]);
 	layer_index = info["layer"];
 	load_param(file);
 }

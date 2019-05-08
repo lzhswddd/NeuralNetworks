@@ -25,7 +25,7 @@ namespace nn {
 		@param output 输出
 		@param d_layer 输出梯度矩阵
 		*/
-		void FutureJacobi(TrainData::iterator data, vector<Mat>& d_layer, vector<float> &error) {}
+		void FutureJacobi(TrainData::iterator data, vector<Mat>& d_layer, vector<float> &error);
 		/**
 		@brief FutureJacobi 雅可比矩阵
 		计算梯度矩阵

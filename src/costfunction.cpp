@@ -25,9 +25,6 @@ void nn::costfunction::setfunction(ReduceType loss_f)
 {
 	switch (loss_f)
 	{
-	case nn::NORM_L1:
-		SetFunc(L1, &this->f, &this->df);
-		break;
 	case nn::NORM_L2:
 		SetFunc(L2, &this->f, &this->df);
 		break;

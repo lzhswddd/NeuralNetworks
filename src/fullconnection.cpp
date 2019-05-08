@@ -28,11 +28,11 @@ void nn::fullconnection::update(const vector<Mat> &d, int *idx)
 
 nn::Size3 nn::fullconnection::initialize(Size3 param_size)
 {
-	param = method::Xavier(param_size.h, param_size.w, 1);
+	param = method::Xavier(size, param_size.h, 1, param_size.h, size);
 	bias = zeros(size, 1); 
 	if (regularization)
 		updateregular();
-	return Size3(param_size.h, 1, 1);
+	return Size3(size, 1, 1);
 }
 
 void nn::fullconnection::forword(const Mat & in, Mat & out) const
@@ -61,7 +61,7 @@ void nn::fullconnection::back(const vector<Mat> &in, vector<Mat> & out, vector<M
 			out[idx] = Mult(in[idx], active.df(variable[1][idx]));
 		else
 			out[idx] = in[idx];
-		(*dlayer)[dlayer->size() - 1 - *number] += mSum(out[idx], CHANNEL);
+		(*dlayer)[dlayer->size() - 1 - *number] += out[idx];
 		(*dlayer)[dlayer->size() - 2 - *number] += out[idx] * variable[0][idx].t();
 		if (!start)
 			out[idx] = param.t() * out[idx];
@@ -69,7 +69,7 @@ void nn::fullconnection::back(const vector<Mat> &in, vector<Mat> & out, vector<M
 	(*dlayer)[dlayer->size() - 1 - *number] /= (float)in.size();
 	(*dlayer)[dlayer->size() - 2 - *number] /= (float)in.size(); 
 	if (regularization)
-		(*dlayer)[dlayer->size() - 2 - *number] += lambda * regular / (float)in.size();
+		(*dlayer)[dlayer->size() - 2 - *number] += lambda * regular;
 	*number += 2;
 }
 

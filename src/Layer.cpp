@@ -29,6 +29,9 @@ Layer * nn::CreateLayer(json & info, FILE* file)
 	case nn::FULLCONNECTION:
 		layer = (Layer*)new fullconnection(info["name"]);
 		break;
+	case nn::BATCHNORMALIZATION:
+		layer = (Layer*)new batchnormalization(info["name"]);
+		break;
 	case nn::ACTIVATION:
 		layer = (Layer*)new activation(info["name"]);
 		break;
@@ -229,6 +232,7 @@ string nn::Layer::Type2String(LayerType type)
 		break;
 	case nn::BATCHNORMALIZATION:
 		type_name = "BATCH_NORMALIZATION";
+		break;
 	case nn::FULLCONNECTION:
 		type_name = "FULL_CONNECTION";
 		break;
@@ -258,7 +262,8 @@ LayerType nn::Layer::String2Type(string str)
 	if (str == "NONE")return NONE;
 	else if (str == "CONV2D")return CONV2D;
 	else if (str == "POOL")return POOL;
-	else if (str == "FULLCONNECTION")return FULLCONNECTION;
+	else if (str == "FULL_CONNECTION")return FULLCONNECTION; 
+	else if (str == "BATCH_NORMALIZATION")return BATCHNORMALIZATION;
 	else if (str == "ACTIVATION")return ACTIVATION;
 	else if (str == "RESHAPE")return RESHAPE;
 	else if (str == "DROPOUT")return DROPOUT;

@@ -18,7 +18,7 @@ namespace nn
 	class method
 	{
 	public:
-		static const Mat Xavier(int row, int col, int channel);
+		static const Mat Xavier(int row, int col, int channel, int n1, int n2);
 		/**
 		@brief CreateMat 创建随机矩阵
 		大小为row*col*channel, 元素范围[low, top]

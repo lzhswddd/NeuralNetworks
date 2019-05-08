@@ -258,6 +258,14 @@ void nn::BresenhamCircle(Image & src, Point point, int radius, Color color, int 
 
 void nn::rectangle(Image & src, int x1, int y1, int x2, int y2, Color color, int lineWidth, bool fill)
 {
+	int xmin = min(x1, x2);
+	int ymin = min(y1, y2);
+	int xmax = max(x1, x2);
+	int ymax = max(y1, y2);
+	x1 = xmin;
+	x2 = xmax;
+	y1 = ymin;
+	y2 = ymax;
 	for (int col = max(x1, 0); col <= min(src.cols - 1, x2); ++col)
 		for (int wid = -lineWidth / 2; wid <= lineWidth / 2; ++wid)
 			src(CHECK_INDEX(y1 + wid, src.rows - 1), CHECK_INDEX(col, src.cols - 1)) = color;

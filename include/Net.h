@@ -17,6 +17,7 @@ namespace nn
 	public:
 		Net();
 		Net(string model);
+		Net(const Net &net);
 		~Net();
 		void clear();
 		void save(string net_name)const;
@@ -54,18 +55,20 @@ namespace nn
 		const vector<Mat> operator ()(const Mat &input)const;
 		operator NetNode<Layer*>* ()
 		{
-			return &netTree;
+			return netTree;
 		}
 		operator const NetNode<Layer*>* ()const
 		{
-			return &netTree;
+			return netTree;
 		}
+		Net& operator = (const Net &net);
 		friend std::ostream & operator << (std::ostream &out, const Net &net);
 
 	private:
 		bool isinit = false;
+		int *recount = 0;
 		//È¨Öµ¾ØÕó
-		NetNode<Layer*> netTree; 
+		NetNode<Layer*> *netTree; 
 	};
 }
 

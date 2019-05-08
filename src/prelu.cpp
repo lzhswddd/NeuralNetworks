@@ -15,7 +15,10 @@ nn::prelu::~prelu()
 
 nn::Size3 nn::prelu::initialize(Size3 param_size)
 {
-	a = zeros(1, 1, param_size.c) + 0.25f;
+	if (param_size.c == 1)
+		a = zeros(param_size.h, 1, 1) + 0.25f;
+	else
+		a = zeros(1, 1, param_size.c) + 0.25f;
 	if (regularization)
 		updateregular();
 	return param_size;
@@ -49,12 +52,15 @@ void nn::prelu::forword_train(const vector<Mat> &in, vector<Mat> & out, vector<M
 void nn::prelu::back(const vector<Mat> &in, vector<Mat> & out, vector<Mat> *dlayer, int *number) const
 {
 	for (size_t idx = 0; idx < in.size(); ++idx) {
-		(*dlayer)[dlayer->size() - 1 - *number] += mSum(in[idx], CHANNEL);
+		if(a.dims() == 3)
+			(*dlayer)[dlayer->size() - 1 - *number] += mSum(in[idx], CHANNEL);
+		else
+			(*dlayer)[dlayer->size() - 1 - *number] += in[idx];
 		out[idx] = Mult(in[idx], D_PReLU(variable[idx]));
 	}
 	(*dlayer)[dlayer->size() - 1 - *number] /= (float)in.size(); 
 	if (regularization)
-		(*dlayer)[dlayer->size() - 1 - *number] += lambda * regular / (float)in.size();
+		(*dlayer)[dlayer->size() - 1 - *number] += lambda * regular;
 	*number += 1;
 }
 
@@ -107,23 +113,32 @@ const Mat nn::prelu::PReLU(const Mat & x) const
 {
 	Mat y(x.size3());
 	const float *ai = a;
-	int c = y.channels();
-	float *total_y = y;
-	const float *total_x = x;
-	for (int j = 0; j < c; ++j) {
-		float *p = total_y + j;
-		const float *mat = total_x + j;
-		for (int i = 0; i < y.rows()*y.cols(); ++i) {
-			if (*mat < 0)
-				*p = *mat*(*ai);
-			else if (*mat > 0)
-				*p = *mat;
-			else
-				*p = 0;
-			p += c;
-			mat += c;
+	if (a.dims() == 3) {
+		int c = y.channels();
+		float *total_y = y;
+		const float *total_x = x;
+		for (int j = 0; j < c; ++j) {
+			float *p = total_y + j;
+			const float *mat = total_x + j;
+			for (int i = 0; i < y.rows()*y.cols(); ++i) {
+				PReLU(p, mat, ai);
+				p += c;
+				mat += c;
+			}
+			ai++;
 		}
-		ai++;
+	}
+	else {
+		float *p = y;
+		const float *mat = x;
+		for (int i = 0; i < y.rows(); ++i) {
+			for (int j = 0; j < y.cols(); ++j) {
+				PReLU(p, mat, ai);
+				p ++;
+				mat ++;
+			}
+			ai++;
+		}
 	}
 	return y;
 }
@@ -132,23 +147,52 @@ const Mat nn::prelu::D_PReLU(const Mat & x) const
 {
 	Mat y(x.size3());
 	const float *ai = a;
-	int c = y.channels();
-	float *total_y = y;
-	const float *total_x = x;
-	for (int j = 0; j < c; ++j) {
-		float *p = total_y + j;
-		const float *mat = total_x + j;
-		for (int i = 0; i < y.rows()*y.cols(); ++i) {
-			if (*mat < 0)
-				*p = *ai;
-			else if (*mat > 0)
-				*p = 1;
-			else
-				*p = 0;
-			p += c;
-			mat += c;
+	if (a.dims() == 3) {
+		int c = y.channels();
+		float *total_y = y;
+		const float *total_x = x;
+		for (int j = 0; j < c; ++j) {
+			float *p = total_y + j;
+			const float *mat = total_x + j;
+			for (int i = 0; i < y.rows()*y.cols(); ++i) {
+				D_PReLU(p, mat, ai);
+				p += c;
+				mat += c;
+			}
+			ai++;
 		}
-		ai++;
+	}
+	else {
+		float *p = y;
+		const float *mat = x;
+		for (int i = 0; i < y.rows(); ++i) {
+			for (int j = 0; j < y.cols(); ++j) {
+				D_PReLU(p, mat, ai);
+				p++;
+				mat++;
+			}
+			ai++;
+		}
 	}
 	return y;
+}
+
+void nn::prelu::PReLU(float *p, const float *mat, const float *ai)
+{
+	if (*mat < 0)
+		*p = *mat*(*ai);
+	else if (*mat > 0)
+		*p = *mat;
+	else
+		*p = 0;
+}
+
+void nn::prelu::D_PReLU(float *p, const float *mat, const float *ai)
+{
+	if (*mat < 0)
+		*p = *ai;
+	else if (*mat > 0)
+		*p = 1;
+	else
+		*p = 0;
 }

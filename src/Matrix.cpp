@@ -17,11 +17,17 @@ Matrix::Matrix()
 	init();
 	checkSquare();
 }
+Matrix::Matrix(int w)
+{
+	init();
+	check(1, col);
+	create(col);
+}
 Matrix::Matrix(int row, int col)
 {
 	init();
 	check(row, col);
-	create(row, col, 1);
+	create(row, col);
 }
 Matrix::Matrix(int row, int col, int depth)
 {
@@ -33,7 +39,7 @@ Matrix::Matrix(Size size_)
 {
 	init();
 	check(size_.h, size_.w);
-	create(size_.h, size_.w, 1);
+	create(size_.h, size_.w);
 }
 Matrix::Matrix(Size3 size_)
 {
@@ -180,6 +186,7 @@ void Matrix::create(int w)
 	release();
 	check(w, 1, 1);
 	setsize(1, w, 1);
+	dim = 1;
 #ifdef LIGHT_MAT
 	createCount();
 #endif
@@ -192,6 +199,7 @@ void Matrix::create(int h, int w)
 	release();
 	check(h, w, 1);
 	setsize(h, w, 1);
+	dim = 2;
 #ifdef LIGHT_MAT
 	createCount();
 #endif
@@ -204,6 +212,7 @@ void Matrix::create(int h, int w, int c)
 	release();
 	check(h, w, c);
 	setsize(h, w, c);
+	dim = 3;
 #ifdef LIGHT_MAT
 	createCount();
 #endif
@@ -436,7 +445,7 @@ void Matrix::setInv()
 		throw std::exception(errinfo[ERR_INFO_INV]);
 	}
 }
-void Matrix::setPow(int num)
+void Matrix::setPow(float num)
 {
 #ifdef MAT_DEBUG
 	if (isEnable() == -1) {
@@ -473,6 +482,10 @@ Size3 Matrix::size3() const
 int nn::Matrix::total() const
 {
 	return offset_c;
+}
+int nn::Matrix::dims() const
+{
+	return dim;
 }
 int Matrix::rows()const
 {
@@ -1060,6 +1073,7 @@ const Matrix Matrix::sqrt()const
 
 void Matrix::init()
 {
+	dim = 0;
 	row = 0;
 	col = 0;
 	channel = 0;
@@ -1392,6 +1406,7 @@ Matrix& Matrix::operator = (const Matrix &temp)
 	col = temp.col;
 	channel = temp.channel;
 	offset_c = temp.offset_c;
+	dim = temp.dim;
 	matrix = temp.matrix;
 #else
 	setvalue(temp);
@@ -1544,27 +1559,27 @@ const Matrix Matrix::operator [] (const int channel)const
 	return Channel(channel);
 }
 
-const Mat nn::operator + (const float value, const Mat &mat)
+const Matrix nn::operator + (const float value, const Matrix &mat)
 {
 	return mat + value;
 }
 
-const Mat nn::operator - (const float value, const Mat &mat)
+const Matrix nn::operator - (const float value, const Matrix &mat)
 {
 	return value + (-mat);
 }
 
-const Mat nn::operator * (const float value, const Mat &mat)
+const Matrix nn::operator * (const float value, const Matrix &mat)
 {
 	return mat * value;
 }
 
-const Mat nn::operator / (const float value, const Mat &mat)
+const Matrix nn::operator / (const float value, const Matrix &mat)
 {
 	return Divi(mat, value, LEFT);
 }
 
-ostream & nn::operator << (ostream &out, const Mat &ma)
+ostream & nn::operator << (ostream &out, const Matrix &ma)
 {
 #ifdef MAT_DEBUG
 	CHECK_MATRIX(ma.matrix);
@@ -1572,3 +1587,4 @@ ostream & nn::operator << (ostream &out, const Mat &ma)
 	ma.show();
 	return out;
 }
+

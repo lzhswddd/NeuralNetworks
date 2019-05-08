@@ -9,10 +9,6 @@
 using std::vector;
 using std::string;
 
-#ifndef MAX_PATH
-#define MAX_PATH 256
-#endif
-
 static string createpath(string path, string dir)
 {
 	path = path + "\\" + dir + "\\";
@@ -31,8 +27,8 @@ static string createtype(string filename)
 //ÔËÐÐÂ·¾¶
 static string show_path()
 {
-	char buffer[MAX_PATH];
-	_getcwd(buffer, MAX_PATH);
+	char buffer[260];
+	_getcwd(buffer, 260);
 	return string(buffer);
 }
 

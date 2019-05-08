@@ -155,6 +155,32 @@ void nn::Train::BackPropagation(TrainData::iterator data, vector<Mat>& d_layer, 
 		op->Run(d_layer, data, error);
 }
 
+void nn::Train::FutureJacobi(TrainData::iterator data, vector<Mat>& d_layer, vector<float>& error)
+{
+	int idx = 0;
+	method::update_layer(*net, d_layer, idx);
+	vector<Mat> variable(data->size());
+	vector<vector<Mat>> transmit(1, vector<Mat>(data->size()));
+	for (int idx = 0; idx < data->size(); ++idx) {
+		variable[idx] = data->at(idx)->input;
+		transmit[0][idx] = data->at(idx)->input;
+	}
+	method::forward_train(*net, variable, transmit, 0);
+	for (Mat &m : d_layer)
+		m.setOpp();
+	idx = 0;
+	method::update_layer(*net, d_layer, idx);
+	if (loss.empty())
+	{
+		fprintf(stderr, "没有注册损失函数!");
+		throw std::exception("没有注册损失函数!");
+	}
+	for (size_t i = 0; i < loss.size(); ++i) {
+		error[i] = ((const costfunction*)loss[i]->data)->forword(data, &transmit, i);
+	}
+	JacobiMat(data, d_layer, transmit);
+}
+
 void nn::Train::Jacobi(TrainData::iterator data, vector<Mat>& d_layer, vector<float> & error)
 {
 	vector<Mat> variable(data->size());
@@ -163,7 +189,7 @@ void nn::Train::Jacobi(TrainData::iterator data, vector<Mat>& d_layer, vector<fl
 		variable[idx] = data->at(idx)->input;
 		transmit[0][idx] = data->at(idx)->input;
 	}
-	method::forward_train(net->NetTree(), variable, transmit, 0);
+	method::forward_train(*net, variable, transmit, 0);
 	if (loss.empty())
 	{
 		fprintf(stderr, "没有注册损失函数!");
@@ -194,8 +220,8 @@ void nn::Train::initialize()
 		if (regularization) {
 			method::regularization(*net, lambda);
 		}
-		method::initialize_loss(net->NetTree(), &loss);
-		method::initialize_mat(net->NetTree(), &size);
+		method::initialize_loss(*net, &loss);
+		method::initialize_mat(*net, &size);
 		dlayer.resize(size.size());
 		reverse(loss.begin(), loss.end());
 		op->RegisterTrain(this);

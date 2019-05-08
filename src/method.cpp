@@ -8,13 +8,13 @@ using json = nlohmann::json;
 
 using namespace nn;
 
-const Mat nn::method::Xavier(int row, int col, int channel)
+const Mat nn::method::Xavier(int row, int col, int channel, int n1, int n2)
 {
 	Mat m(row, col, channel);
 	float *p = m;
 	for (int i = 0; i < m.length(); ++i)
 	{
-		*p = generateGaussianNoise(0, 1) * sqrt(6.0f / (float)(row*col*channel));
+		*p = generateGaussianNoise(0, 1) * 1.0f / sqrt(float(n1 + n2));
 		//*p = generateGaussianNoise(0, 1) * sqrt(6.0f / (col + row));
 		p++;
 	}
@@ -199,7 +199,14 @@ void nn::method::initialize_size(NetNode<Layer*>* tree, vector<Size3>& input_siz
 		{
 			if (input_size[idx].c != 1 || input_size[idx].w != 1)
 			{
-				node = tree->child.insert(node, CreateNode(Reshape(Size3(input_size[idx].h*input_size[idx].w*input_size[idx].c, 1, 1)), &(*node)));
+				if (node->data->start) {
+					node->data->start = false; 
+					node = tree->child.insert(node, CreateNode(Reshape(Size3(input_size[idx].h*input_size[idx].w*input_size[idx].c, 1, 1)), &(*node)));
+					node->data->start = true;
+				}
+				else {
+					node = tree->child.insert(node, CreateNode(Reshape(Size3(input_size[idx].h*input_size[idx].w*input_size[idx].c, 1, 1)), &(*node)));
+				}
 				continue;
 			}
 		}
@@ -295,7 +302,7 @@ void nn::method::back_train(NetNode<Layer*>* tree, vector<Mat>& dlayer, vector<v
 			}
 		}
 		Layer *layer = tree->child[index].data;
-		if (layer->isback) {
+		if (layer->isback&&!layer->start) {
 			layer->back(output[idx], output[idx], &dlayer, &number);
 		}
 		if (!tree->child[index].child.empty()) {

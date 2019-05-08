@@ -66,6 +66,11 @@ int nn::TrainData::batchSize() const
 	return batch_size;
 }
 
+bool nn::TrainData::all_load() const
+{
+	return batchdata.size() == range.size();
+}
+
 int nn::TrainData::len() const
 {
 	return (int)range.size();

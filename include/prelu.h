@@ -25,6 +25,8 @@ namespace nn {
 
 		const Mat PReLU(const Mat & x)const;
 		const Mat D_PReLU(const Mat & x)const;
+		static void PReLU(float *p, const float *mat, const float *ai);
+		static void D_PReLU(float *p, const float *mat, const float *ai);
 
 		Mat a;
 		vector<Mat> variable;

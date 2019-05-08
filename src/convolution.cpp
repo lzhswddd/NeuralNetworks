@@ -14,7 +14,7 @@ nn::convolution::~convolution()
 
 nn::Size3 nn::convolution::initialize(Size3 input_size)
 {
-	param = method::Xavier(kern_size, kern_size, input_size.c*channel);
+	param = method::Xavier(kern_size, kern_size, input_size.c*channel, input_size.c, channel);
 	if(regularization)
 		updateregular();
 	bias = zeros(1, 1, channel);
@@ -69,10 +69,10 @@ void nn::convolution::back(const vector<Mat> &in, vector<Mat> & out, vector<Mat>
 		if (!start)
 			out[idx] = iconv2d(out[idx], rotate(param, ROTATE_180_ANGLE), Size3(), true);
 	}
-	//(*dlayer)[dlayer->size() - 1 - *number] /= (float)in.size();
-	//(*dlayer)[dlayer->size() - 2 - *number] /= (float)in.size(); 
+	(*dlayer)[dlayer->size() - 1 - *number] /= (float)in.size();
+	(*dlayer)[dlayer->size() - 2 - *number] /= (float)in.size(); 
 	if (regularization)
-		(*dlayer)[dlayer->size() - 2 - *number] += lambda * regular / (float)in.size();
+		(*dlayer)[dlayer->size() - 2 - *number] += lambda * regular;
 	*number += 2;
 }
 

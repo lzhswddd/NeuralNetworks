@@ -21,7 +21,6 @@ namespace nn
 		ACTI_SOFTMAX
 	};
 	enum ReduceType {
-		NORM_L1 = 0,
 		NORM_L2,
 		QUADRATIC,
 		CROSSENTROPY,
@@ -86,6 +85,11 @@ namespace nn
 			: data(data), child(), parent(parent), sibling()
 		{
 			
+		}
+		NetNode(_Tp &&data, NetNode<_Tp>* parent)
+			: data(data), child(), parent(parent), sibling()
+		{
+
 		}
 		NetNode<_Tp>* operator [](int idx)const
 		{

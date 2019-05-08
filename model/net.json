@@ -1,0 +1,74 @@
+[
+    {
+        "layer": 0,
+        "name": "",
+        "size": {
+            "c": 1,
+            "h": 256,
+            "w": 1
+        },
+        "type": "RESHAPE"
+    },
+    {
+        "isact": false,
+        "layer": 0,
+        "name": "",
+        "size": 50,
+        "type": "FULL_CONNECTION"
+    },
+    {
+        "layer": 0,
+        "name": "",
+        "type": "BATCH_NORMALIZATION"
+    },
+    {
+        "activate": "ReLU",
+        "layer": 0,
+        "name": "",
+        "type": "ACTIVATION"
+    },
+    {
+        "isact": false,
+        "layer": 0,
+        "name": "",
+        "size": 50,
+        "type": "FULL_CONNECTION"
+    },
+    {
+        "layer": 0,
+        "name": "",
+        "type": "BATCH_NORMALIZATION"
+    },
+    {
+        "activate": "ReLU",
+        "layer": 0,
+        "name": "",
+        "type": "ACTIVATION"
+    },
+    {
+        "isact": false,
+        "layer": 0,
+        "name": "",
+        "size": 50,
+        "type": "FULL_CONNECTION"
+    },
+    {
+        "layer": 0,
+        "name": "",
+        "type": "BATCH_NORMALIZATION"
+    },
+    {
+        "activate": "ReLU",
+        "layer": 0,
+        "name": "",
+        "type": "ACTIVATION"
+    },
+    {
+        "activate": "Sigmoid",
+        "isact": true,
+        "layer": 0,
+        "name": "",
+        "size": 23,
+        "type": "FULL_CONNECTION"
+    }
+]
