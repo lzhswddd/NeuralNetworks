@@ -236,6 +236,7 @@ void nn::MTCNN::trainPNet(string rootpath, string imglist, string imagedir,
 		batch_size, label_processing);
 	trainData.register_process(0, image_processing);
 	trainData.load_all_data(true);
+	TrainOption option = { &trainData, 10, 1, true, true, nullptr, false, 0 };
 
 	if (load) {
 		train.RegisterNet(&Pnet);
@@ -243,7 +244,7 @@ void nn::MTCNN::trainPNet(string rootpath, string imglist, string imagedir,
 		train.initialize();
 	}
 	else
-		train.Fit(&Pnet, trainData, optimizer, 1, 1, true, true);
+		train.Fit(&Pnet, optimizer, &option);
 
 	LARGE_INTEGER t1, t2, tc;
 	QueryPerformanceFrequency(&tc);
@@ -295,7 +296,7 @@ void nn::MTCNN::trainPNet(string rootpath, string imglist, string imagedir,
 			m.release();
 			finalBbox.clear();
 		}*/
-		train.Fit(trainData, 1, 1, false);
+		train.Fit(&option);
 		printf("count: %d\n", count + 1);
 		Pnet.save_param(model);
 		optimizer->save(optimizer_param);

@@ -186,7 +186,6 @@ void Matrix::create(int w)
 	release();
 	check(w, 1, 1);
 	setsize(1, w, 1);
-	dim = 1;
 #ifdef LIGHT_MAT
 	createCount();
 #endif
@@ -199,7 +198,6 @@ void Matrix::create(int h, int w)
 	release();
 	check(h, w, 1);
 	setsize(h, w, 1);
-	dim = 2;
 #ifdef LIGHT_MAT
 	createCount();
 #endif
@@ -212,7 +210,6 @@ void Matrix::create(int h, int w, int c)
 	release();
 	check(h, w, c);
 	setsize(h, w, c);
-	dim = 3;
 #ifdef LIGHT_MAT
 	createCount();
 #endif
@@ -1143,6 +1140,14 @@ void nn::Matrix::setsize(int h, int w, int c)
 	row = h;
 	channel = c;
 	offset_c = c;
+	if (w == 0 && h == 0 && c == 0)dim = 0;
+	else if (w == 1 && h == 1 && c == 1)dim = 0;
+	else if (w != 1 && h == 1 && c == 1)dim = 1;
+	else if (w == 1 && h != 1 && c == 1)dim = 1;
+	else if (w != 1 && h != 1 && c == 1)dim = 2;
+	else if (w != 1 && h == 1 && c != 1)dim = 2;
+	else if (w == 1 && h != 1 && c != 1)dim = 2;
+	else dim = 3;
 }
 
 const Matrix Matrix::operator + (const float val)const

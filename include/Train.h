@@ -9,12 +9,31 @@ using std::vector;
 using std::string;
 
 namespace nn {
+	class TrainOption
+	{
+	public:
+		typedef void(*LOSS_INFO)(void*, int, vector<float>);
+		TrainData *trainData;
+		uint epoch_number;
+		int show_epoch;
+		bool op_init = true;
+		bool everytime_show = false;
+		LOSS_INFO loss_info = nullptr;
+		bool save = false;
+		int save_epoch;
+		string savemodel;
+		string savemethod;
+
+		void *pre = nullptr;
+	};
+
 	class Optimizer;
 	class Train
 	{
 	public:
 		Train(Net *net = nullptr);
 		~Train();
+		void Running(bool run);
 		size_t outputSize()const;
 		void RegisterNet(Net *net);
 		void RegisterOptimizer(Optimizer *optimizer);
@@ -42,15 +61,17 @@ namespace nn {
 		*/
 		void Fit(TrainData::iterator data, vector<float> *error = nullptr);
 
-		void Fit(TrainData &trainData, int epoch_number, int show_epoch, bool once_show = false);
-		void Fit(TrainData &trainData, OptimizerInfo op_info, int epoch_number, int show_epoch, bool once_show = false);
-		void Fit(TrainData &trainData, Optimizer *op, int epoch_number, int show_epoch, bool once_show = false, bool op_init = false);
-		void Fit(Net *net, TrainData &trainData, Optimizer *op, int epoch_number, int show_epoch, bool once_show = false, bool op_init = false);
-		void Fit(Net *net, TrainData &trainData, OptimizerInfo op_info, int epoch_number, int show_epoch, bool once_show = false);
+		void Fit(TrainOption *option);
+		void Fit(OptimizerInfo op_info, TrainOption *option);
+		void Fit(Optimizer *op, TrainOption *option);
+		void Fit(Net *net, Optimizer *op, TrainOption *option);
+		void Fit(Net *net, OptimizerInfo op_info, TrainOption *option);
 		void initialize();
 
 		float lambda = 1.0f;
 		bool regularization = false;
+		void *pre = nullptr;
+		volatile bool running = true;
 	protected:
 		/**
 		@brief BackPropagation ·´Ïò´«²¥

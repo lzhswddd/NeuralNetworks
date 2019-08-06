@@ -2,6 +2,7 @@
 #include "method.h"
 #include "optimizer.h"
 #include "costfunction.h"
+#include "Timer.h"
 #include <Windows.h>
 using namespace nn;
 
@@ -9,7 +10,6 @@ nn::Train::Train(Net * net)
 	: net(net), op(0)
 {
 }
-
 nn::Train::~Train()
 {
 	if (op != nullptr) {
@@ -17,22 +17,22 @@ nn::Train::~Train()
 		op = nullptr;
 	}
 }
-
+void nn::Train::Running(bool run)
+{
+	running = run;
+}
 size_t nn::Train::outputSize() const
 {
 	return loss.size();
 }
-
 void nn::Train::RegisterNet(Net * net)
 {
 	this->net = net;
 }
-
 void nn::Train::RegisterOptimizer(Optimizer * optimizer)
 {
 	op = optimizer;
 }
-
 void nn::Train::Fit(TrainData::iterator data, vector<float> *error)
 {
 	if (op == nullptr)return;
@@ -49,53 +49,69 @@ void nn::Train::Fit(TrainData::iterator data, vector<float> *error)
 		v = 0;
 	BackPropagation(data, dlayer, err);
 	int idx = 0;
-	method::update_layer(net->NetTree(), dlayer, idx);
+	Net::update_layer(net->NetTree(), dlayer, idx);
 	if (error != nullptr)
 		err.swap(*error);
 	//}
 }
-
-void nn::Train::Fit(TrainData & trainData, int epoch_number, int show_epoch, bool once_show)
+void nn::Train::Fit(TrainOption *option)
 {
-	LARGE_INTEGER t1, t2, tc;
-	QueryPerformanceFrequency(&tc);
-	vector<float> error(loss.size()); 
+	Timer t;
+	vector<float> error(loss.size());
 	for (float &v : error)
 		v = 0;
-	for (int epoch = 0; epoch < epoch_number; ++epoch) {
-		QueryPerformanceCounter(&t1);
-		trainData.reset();
-		for (int &v : trainData.range) {
-			TrainData::iterator netData = trainData.batches();
+	for (uint epoch = 0; epoch < option->epoch_number; ++epoch) {
+		t.Start();
+		option->trainData->reset();
+		for (int &v : option->trainData->range) {
+			if (!running)return;
+			TrainData::iterator netData = option->trainData->batches();
 			vector<float> err;
 			Fit(netData, &err);
 			for (size_t i = 0; i < err.size(); ++i)
 				error[i] += err[i];
-			if (once_show && epoch == 0) {
-				printf("batch number %d, error ", v + 1);
-				for (float &e : err)
-					printf("%0.6lf ", e);
-				printf("\n");
+			if (option->everytime_show) {
+				if (option->loss_info)
+					option->loss_info(pre, 1, err);
+				else {
+					printf("batch number %d, error ", v + 1);
+					for (float &e : err)
+						printf("%0.6lf ", e);
+					printf("\n");
+				}
 			}
 		}
-		if (epoch % show_epoch == show_epoch - 1) {
-			QueryPerformanceCounter(&t2);
-			printf("epoch %d, error ", epoch + 1);
+		if (option->save && epoch % option->save_epoch == option->save_epoch - 1) {
+			net->save_param(option->savemodel);
+			op->save(option->savemethod);
+		}
+		if (!option->everytime_show && epoch % option->show_epoch == option->show_epoch - 1) {
 			for (float &e : error) {
-				printf("%0.6lf ", e / (float)trainData.len());
+				e /= (float)option->trainData->len();
 			}
-			printf(" cost time %0.4lf sec\n", (t2.QuadPart - t1.QuadPart)*1.0 / tc.QuadPart);
+			if (option->loss_info)
+				option->loss_info(pre, epoch + 1, error);
+			else {
+				printf("epoch %d, error ", epoch + 1);
+				for (float &e : error) {
+					printf("%0.6lf ", e);
+				}
+				printf(" cost time %0.4lf sec\n", t.End() / 1000);
+			}
 		}
 		for (float &e : error)
 			e = 0;
 	}
+	if (option->save) {
+		net->save_param(option->savemodel);
+		op->save(option->savemethod);
+	}
 }
-
-void nn::Train::Fit(TrainData & trainData, OptimizerInfo op_info, int epoch_number, int show_epoch, bool once_show)
+void nn::Train::Fit(OptimizerInfo op_info, TrainOption *option)
 {
 	if (!net) {
 		fprintf(stderr, "获取模型失败!\n");
-		return; 
+		return;
 	}
 	OptimizerP optimizer = Optimizer::CreateOptimizer(op_info);
 	if (optimizer) {
@@ -106,7 +122,7 @@ void nn::Train::Fit(TrainData & trainData, OptimizerInfo op_info, int epoch_numb
 		op = optimizer;
 		initialize();
 		op->init(size);
-		Fit(trainData, epoch_number, show_epoch, once_show);
+		Fit(option);
 		delete op;
 		op = nullptr;
 	}
@@ -114,62 +130,58 @@ void nn::Train::Fit(TrainData & trainData, OptimizerInfo op_info, int epoch_numb
 		fprintf(stderr, "获取优化方法失败!\n");
 	}
 }
-
-void nn::Train::Fit(TrainData & trainData, Optimizer *optimizer, int epoch_number, int show_epoch, bool once_show, bool op_init)
+void nn::Train::Fit(Optimizer *optimizer, TrainOption *option)
 {
 	if (!net) {
 		fprintf(stderr, "获取模型失败!\n");
 		return;
 	}
 	if (optimizer) {
-		if (op != nullptr) {
+		if (op != nullptr && op != optimizer) {
 			delete op;
 			op = nullptr;
 		}
 		op = optimizer;
 		initialize();
-		if (op_init)
+		if (option->op_init)
 			op->init(size);
-		Fit(trainData, epoch_number, show_epoch, once_show);
+		Fit(option);
 	}
 	else {
 		fprintf(stderr, "获取优化方法失败!\n");
 	}
 }
-
-void nn::Train::Fit(Net * net, TrainData & trainData, Optimizer *op, int epoch_number, int show_epoch, bool once_show, bool op_init)
+void nn::Train::Fit(Net * net, Optimizer *op, TrainOption *option)
 {
 	this->net = net;
-	Fit(trainData, op, epoch_number, show_epoch, once_show, op_init);
+	Fit(op, option);
 }
-
-void nn::Train::Fit(Net * net, TrainData & trainData, OptimizerInfo op_info, int epoch_number, int show_epoch, bool once_show)
+void nn::Train::Fit(Net * net, OptimizerInfo op_info, TrainOption *option)
 {
 	this->net = net;
-	Fit(trainData, op_info, epoch_number, show_epoch, once_show);
+	option->op_init = true;
+	Fit(op_info, option);
 }
-
 void nn::Train::BackPropagation(TrainData::iterator data, vector<Mat>& d_layer, vector<float> & error)
 {
 	if (op != 0)
 		op->Run(d_layer, data, error);
 }
-
 void nn::Train::FutureJacobi(TrainData::iterator data, vector<Mat>& d_layer, vector<float>& error)
 {
 	int idx = 0;
-	method::update_layer(*net, d_layer, idx);
+	Net::update_layer(*net, d_layer, idx);
 	vector<Mat> variable(data->size());
 	vector<vector<Mat>> transmit(1, vector<Mat>(data->size()));
 	for (int idx = 0; idx < data->size(); ++idx) {
 		variable[idx] = data->at(idx)->input;
 		transmit[0][idx] = data->at(idx)->input;
 	}
-	method::forward_train(*net, variable, transmit, 0);
+	Net::forward_train(*net, variable, transmit, 0);
 	for (Mat &m : d_layer)
 		m.setOpp();
 	idx = 0;
-	method::update_layer(*net, d_layer, idx);
+	Net::update_layer(*net, d_layer, idx);
 	if (loss.empty())
 	{
 		fprintf(stderr, "没有注册损失函数!");
@@ -180,7 +192,6 @@ void nn::Train::FutureJacobi(TrainData::iterator data, vector<Mat>& d_layer, vec
 	}
 	JacobiMat(data, d_layer, transmit);
 }
-
 void nn::Train::Jacobi(TrainData::iterator data, vector<Mat>& d_layer, vector<float> & error)
 {
 	vector<Mat> variable(data->size());
@@ -189,7 +200,7 @@ void nn::Train::Jacobi(TrainData::iterator data, vector<Mat>& d_layer, vector<fl
 		variable[idx] = data->at(idx)->input;
 		transmit[0][idx] = data->at(idx)->input;
 	}
-	method::forward_train(*net, variable, transmit, 0);
+	Net::forward_train(*net, variable, transmit, 0);
 	if (loss.empty())
 	{
 		fprintf(stderr, "没有注册损失函数!");
@@ -200,28 +211,26 @@ void nn::Train::Jacobi(TrainData::iterator data, vector<Mat>& d_layer, vector<fl
 	}
 	JacobiMat(data, d_layer, transmit);
 }
-
 void nn::Train::JacobiMat(TrainData::iterator label, vector<Mat> &dlayer, vector<vector<Mat>> &output)
 {
 	int idx = 0;
-	int number = 0; 
+	int number = 0;
 	for (const NetNode<Layer*> *lossNode : loss) {
 		((const costfunction*)lossNode->data)->back(label, &output, idx);
 		idx += 1;
 	}
-	method::back_train(loss[0]->parent, dlayer, output, number, 0);
+	Net::back_train(loss[0]->parent, dlayer, output, number, 0);
 }
-
 void nn::Train::initialize()
 {
 	if (net) {
 		loss.clear();
 		size.size();
 		if (regularization) {
-			method::regularization(*net, lambda);
+			Net::regularization(*net, lambda);
 		}
-		method::initialize_loss(*net, &loss);
-		method::initialize_mat(*net, &size);
+		Net::initialize_loss(*net, &loss);
+		Net::initialize_mat(*net, &size);
 		dlayer.resize(size.size());
 		reverse(loss.begin(), loss.end());
 		op->RegisterTrain(this);

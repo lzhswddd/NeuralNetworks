@@ -61,7 +61,7 @@ const Mat ReadImageData(const Image &input)
 void testword(Net &net)
 {
 	vector<string> files;
-	getFiles("E:\\study\\c++\\train\\images", files);//保存所有文件路径
+	getFiles("F:\\study\\train\\images", files);//保存所有文件路径
 	if (files.empty()) {
 		printf("file is empty!\n");
 		return;
@@ -97,16 +97,17 @@ void trainWordNet(Net &net)
 		cout << y.size3() << endl;
 
 	int epoch = 20;
-	TrainData trainData("E:\\study\\c++\\train", "data.txt", "images", 128);
+	TrainData trainData("F:\\study\\train", "data.txt", "images", 128);
 	trainData.register_process(reverse, normalization);
 	cout << "load traindata..." << endl;
 	trainData.load_all_data(true);
 	printf("start train net...\n");
+	TrainOption option = { &trainData, 10, 1, true, false, nullptr, false, 0 };
 
 	Train train;
 	//train.regularization = true;
 	//train.lambda = 0.01f;
-	train.Fit(&net, trainData, OptimizerInfo(Adam, 0.001f), epoch, 1, true);
+	train.Fit(&net, OptimizerInfo(Adam, 0.001f), &option);
 	net.save("./model/net");
 	net.clear();
 	net.load("./model/net");
@@ -143,10 +144,11 @@ Net CNN()
 	net.add(Conv2D(32, 3, false, 0, "conv_3"));
 	net.add(BatchNorm("bn_3"));
 	net.add(Activation(ReLU, "activate_3"));
+	net.add(Dense(23));
 	//net.add(PReLU("activate_3"));
-	net.add(Conv2D(23, 3, false, 0, "conv_4"));
-	net.add(Reshape(Size3(23, 1, 1), "output"));
-	net.add(Loss(SoftmaxCrossEntropy, 1, "loss"));
+	//net.add(Conv2D(23, 3, false, 0, "conv_4"));
+	//net.add(Reshape(Size3(23, 1, 1), "output"));
+	net.add(Loss(SoftmaxCrossEntropy));
 	return net;
 }
 
@@ -155,12 +157,12 @@ int main()
 	Srandom();
 	//testTrain();
 	//testNet(); 
-	//trainWordNet(NN());
-	MTCNN mtcnn;
-	mtcnn.trainPNet(
-		"D:\\mtcnn_data\\data\\seanlx",
-		"train_12.txt", "mtcnn",
-		256, false);
+	trainWordNet(CNN());
+	//MTCNN mtcnn;
+	//mtcnn.trainPNet(
+	//	"D:\\mtcnn_data\\data\\seanlx",
+	//	"train_12.txt", "mtcnn",
+	//	256, false);
 	/*vector<string> files;
 	getFiles("E:\\deeplearn\\data\\kaggle_cifar10\\train", files);
 	int count = 0;

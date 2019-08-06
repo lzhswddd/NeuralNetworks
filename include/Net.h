@@ -64,6 +64,21 @@ namespace nn
 		Net& operator = (const Net &net);
 		friend std::ostream & operator << (std::ostream &out, const Net &net);
 
+		static NetNode<Layer*> CreateNode(Layer *data, NetNode<Layer*>* parent);
+		static void save_layer(const NetNode<Layer*>* tree, json *j, FILE *data);
+		static void save_param_layer(const NetNode<Layer*>* tree, FILE *data);
+		static void load_layer(NetNode<Layer*>* tree, FILE *data);
+		static int insert_layer(NetNode<Layer*>* tree, string name, Layer *layer, bool sibling);
+		static void update_layer(NetNode<Layer*>* tree, vector<Mat> &mat, int &idx);
+		static void regularization(NetNode<Layer*>* tree, float lambda);
+		static void initialize_size(NetNode<Layer*>* tree, vector<Size3> &input_size, int idx);
+		static void initialize_mat(const NetNode<Layer*>* tree, vector<Size3>* mat_size);
+		static void initialize_loss(NetNode<Layer*>* tree, vector<NetNode<Layer*>*> *loss);
+		static void delete_layer(NetNode<Layer*>* tree);
+		static void show_net(const NetNode<Layer*>* tree, std::ostream &out);
+		static void forward(const NetNode<Layer*>* tree, vector<Mat> &output, int idx);
+		static void forward_train(NetNode<Layer*>* tree, vector<Mat> & variable, vector<vector<Mat>> & output, int idx);
+		static void back_train(NetNode<Layer*>* tree, vector<Mat>& dlayer, vector<vector<Mat>> & output, int &number, int idx);
 	private:
 		bool isinit = false;
 		int *recount = 0;

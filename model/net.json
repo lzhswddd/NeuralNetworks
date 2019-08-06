@@ -1,71 +1,111 @@
 [
     {
+        "anchor": {
+            "x": 1,
+            "y": 1
+        },
+        "channel": 10,
+        "is_copy_border": false,
+        "isact": false,
+        "kernSize": 3,
+        "layer": 0,
+        "name": "conv_1",
+        "strides": {
+            "height": 1,
+            "width": 1
+        },
+        "type": "CONV2D"
+    },
+    {
+        "layer": 0,
+        "name": "bn_1",
+        "type": "BATCH_NORMALIZATION"
+    },
+    {
+        "activate": "ReLU",
+        "layer": 0,
+        "name": "activate_1",
+        "type": "ACTIVATION"
+    },
+    {
+        "layer": 0,
+        "name": "maxpool_1",
+        "pool_type": "max_pool",
+        "size": {
+            "height": 2,
+            "width": 2
+        },
+        "strides": 2,
+        "type": "POOL"
+    },
+    {
+        "anchor": {
+            "x": 1,
+            "y": 1
+        },
+        "channel": 16,
+        "is_copy_border": false,
+        "isact": false,
+        "kernSize": 3,
+        "layer": 0,
+        "name": "conv_2",
+        "strides": {
+            "height": 1,
+            "width": 1
+        },
+        "type": "CONV2D"
+    },
+    {
+        "layer": 0,
+        "name": "bn_2",
+        "type": "BATCH_NORMALIZATION"
+    },
+    {
+        "activate": "ReLU",
+        "layer": 0,
+        "name": "activate_2",
+        "type": "ACTIVATION"
+    },
+    {
+        "anchor": {
+            "x": 1,
+            "y": 1
+        },
+        "channel": 32,
+        "is_copy_border": false,
+        "isact": false,
+        "kernSize": 3,
+        "layer": 0,
+        "name": "conv_3",
+        "strides": {
+            "height": 1,
+            "width": 1
+        },
+        "type": "CONV2D"
+    },
+    {
+        "layer": 0,
+        "name": "bn_3",
+        "type": "BATCH_NORMALIZATION"
+    },
+    {
+        "activate": "ReLU",
+        "layer": 0,
+        "name": "activate_3",
+        "type": "ACTIVATION"
+    },
+    {
         "layer": 0,
         "name": "",
         "size": {
             "c": 1,
-            "h": 256,
+            "h": 288,
             "w": 1
         },
         "type": "RESHAPE"
     },
     {
         "isact": false,
-        "layer": 0,
-        "name": "",
-        "size": 50,
-        "type": "FULL_CONNECTION"
-    },
-    {
-        "layer": 0,
-        "name": "",
-        "type": "BATCH_NORMALIZATION"
-    },
-    {
-        "activate": "ReLU",
-        "layer": 0,
-        "name": "",
-        "type": "ACTIVATION"
-    },
-    {
-        "isact": false,
-        "layer": 0,
-        "name": "",
-        "size": 50,
-        "type": "FULL_CONNECTION"
-    },
-    {
-        "layer": 0,
-        "name": "",
-        "type": "BATCH_NORMALIZATION"
-    },
-    {
-        "activate": "ReLU",
-        "layer": 0,
-        "name": "",
-        "type": "ACTIVATION"
-    },
-    {
-        "isact": false,
-        "layer": 0,
-        "name": "",
-        "size": 50,
-        "type": "FULL_CONNECTION"
-    },
-    {
-        "layer": 0,
-        "name": "",
-        "type": "BATCH_NORMALIZATION"
-    },
-    {
-        "activate": "ReLU",
-        "layer": 0,
-        "name": "",
-        "type": "ACTIVATION"
-    },
-    {
-        "activate": "Sigmoid",
-        "isact": true,
         "layer": 0,
         "name": "",
         "size": 23,
